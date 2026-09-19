@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+uploads
+!uploads/.gitkeep
+public/pdf.worker.min.mjs
+*.md
+.cursor
+AGENTS.md
+CLAUDE.md
