@@ -14,8 +14,8 @@ export default async function NewExamPage() {
       <div>
         <h1 className="font-display text-4xl font-semibold">Exam builder</h1>
         <p className="mt-2 text-muted-foreground">
-          Four steps: paper details, marking scheme, answer key, publish. Use “Add new
-          subject” if the list is missing what you need.
+          Paper, marking, answer key, audience, publish. Upload your own PDF and add a
+          subject inline — nothing here needs a second screen first.
         </p>
       </div>
       <ExamBuilder

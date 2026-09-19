@@ -12,5 +12,6 @@ export async function saveConfirmBeforeLocking(confirmBeforeLocking: boolean) {
     create: { userId: user.id, confirmBeforeLocking },
   });
   revalidatePath("/exams");
+  revalidatePath("/profile");
   return { ok: true as const };
 }

@@ -11,6 +11,7 @@ import {
   saveMaterial,
   savePaper,
 } from "@/app/actions/admin";
+import { FileField } from "@/components/admin/file-field";
 import { SubjectPicker } from "@/components/admin/subject-picker";
 import { TargetingFields, type TargetingValue } from "@/components/admin/targeting-fields";
 import { Badge } from "@/components/ui/badge";
@@ -247,7 +248,7 @@ function ItemForm({
   const current = book ?? material ?? paper;
   const [title, setTitle] = useState(current?.title ?? "");
   const [subjectId, setSubjectId] = useState(book?.subjectId ?? paper?.subjectId ?? subjects[0]?.id ?? "");
-  const [fileUrl, setFileUrl] = useState(current?.fileUrl ?? "uploads/ssc-cgl-tier1.pdf");
+  const [fileUrl, setFileUrl] = useState(current?.fileUrl ?? "");
   const [price, setPrice] = useState(String(current?.price ?? 99));
   const [tags, setTags] = useState(material?.tags.join(", ") ?? "");
   const [year, setYear] = useState(String(paper?.year ?? ""));
@@ -315,8 +316,8 @@ function ItemForm({
           <Input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="ssc, quant" />
         </Field>
       )}
-      <Field label="File URL">
-        <Input value={fileUrl} onChange={(event) => setFileUrl(event.target.value)} />
+      <Field label="File">
+        <FileField value={fileUrl} onChange={setFileUrl} />
       </Field>
       {kind === "PAPER" ? (
         <Field label="Year">
@@ -349,9 +350,14 @@ function ItemForm({
       ) : null}
       <TargetingFields value={targeting} onChange={setTargeting} />
       <div className="md:col-span-2">
-        <Button type="button" onClick={submit} disabled={busy || !title}>
+        <Button type="button" onClick={submit} disabled={busy || !title || !fileUrl}>
           {busy ? "Saving…" : current ? "Update item" : "Create item"}
         </Button>
+        {!fileUrl ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Upload a PDF first so students have something to open.
+          </p>
+        ) : null}
       </div>
     </div>
   );

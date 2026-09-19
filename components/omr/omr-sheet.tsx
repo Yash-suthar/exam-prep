@@ -2,6 +2,8 @@
 
 import { optionLabels } from "@/lib/utils";
 import { AnswerBubble } from "@/components/exam/answer-bubble";
+import { MarkReviewButton } from "@/components/exam/mark-review-button";
+import { QuestionPalette } from "@/components/exam/question-palette";
 import { useAnswerLock } from "@/components/exam/use-answer-lock";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,12 +15,14 @@ import {
 import { cn } from "@/lib/utils";
 
 export function OmrSheet({
+  attemptId,
   totalQuestions,
   optionsCount,
   onLock,
   confirmBeforeLocking,
   onSubmit,
 }: {
+  attemptId: string;
   totalQuestions: number;
   optionsCount: number;
   onLock: (questionNo: number, option: string) => Promise<{ ok: boolean; error?: string }>;
@@ -40,26 +44,12 @@ export function OmrSheet({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-3 flex flex-wrap gap-1">
-        {Array.from({ length: totalQuestions }, (_, index) => {
-          const questionNo = index + 1;
-          const answered = Boolean(answers[questionNo]);
-          return (
-            <button
-              key={questionNo}
-              type="button"
-              onClick={() => setCurrent(questionNo)}
-              className={cn(
-                "h-7 min-w-7 rounded-md px-1.5 text-xs font-semibold",
-                answered && "bg-emerald-600 text-white",
-                !answered && "bg-muted text-muted-foreground",
-                currentQuestion === questionNo && "ring-2 ring-primary",
-              )}
-            >
-              {questionNo}
-            </button>
-          );
-        })}
+      <QuestionPalette totalQuestions={totalQuestions} />
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-muted-foreground">
+          Now on Q{currentQuestion}
+        </p>
+        <MarkReviewButton attemptId={attemptId} questionNo={currentQuestion} />
       </div>
       <div className="grid gap-2">
         {Array.from({ length: totalQuestions }, (_, index) => {
@@ -72,6 +62,7 @@ export function OmrSheet({
                 "grid grid-cols-[2.5rem_1fr] items-center gap-2 rounded-xl px-2 py-1.5",
                 currentQuestion === questionNo && "bg-primary/5",
               )}
+              onClick={() => setCurrent(questionNo)}
             >
               <span className="text-sm font-semibold">{questionNo}</span>
               <div className="flex gap-2">

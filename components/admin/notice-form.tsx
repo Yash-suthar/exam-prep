@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { deleteNotice, saveNotice } from "@/app/actions/admin";
+import { FileField } from "@/components/admin/file-field";
 import { TargetingFields, type TargetingValue } from "@/components/admin/targeting-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,26 +120,46 @@ export function NoticeForm({ initial }: { initial?: NoticeDraft }) {
         />
       </div>
       <div className="space-y-1.5 md:col-span-2">
-        <Label>Attachments (PDF / image URL)</Label>
-        <div className="flex gap-2">
-          <Input value={attachment} onChange={(event) => setAttachment(event.target.value)} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              if (!attachment.trim()) return;
-              setDraft((prev) => ({ ...prev, attachments: [...prev.attachments, attachment.trim()] }));
-              setAttachment("");
-            }}
-          >
-            Add
-          </Button>
-        </div>
-        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+        <Label>Attachments</Label>
+        <FileField
+          value={attachment}
+          onChange={setAttachment}
+          hint="Upload the official notification PDF, then press Attach."
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!attachment.trim()}
+          onClick={() => {
+            setDraft((prev) => ({
+              ...prev,
+              attachments: [...new Set([...prev.attachments, attachment.trim()])],
+            }));
+            setAttachment("");
+          }}
+        >
+          Attach
+        </Button>
+        <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
           {draft.attachments.map((file) => (
-            <p key={file}>{file}</p>
+            <li key={file} className="flex items-center justify-between gap-2">
+              <span className="truncate">{file}</span>
+              <button
+                type="button"
+                className="font-semibold text-destructive"
+                onClick={() =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    attachments: prev.attachments.filter((item) => item !== file),
+                  }))
+                }
+              >
+                Remove
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input
