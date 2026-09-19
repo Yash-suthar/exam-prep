@@ -3,6 +3,7 @@ import { getStudentContext } from "@/lib/audience";
 import { getCategoryTemplate } from "@/lib/category-templates";
 import { hasAccess } from "@/lib/access-control";
 import { prisma } from "@/lib/prisma";
+import { readerHref } from "@/lib/reader-links";
 import { requireUser } from "@/lib/session";
 
 export default async function PapersPage() {
@@ -22,7 +23,7 @@ export default async function PapersPage() {
       isFree: paper.isFree || paper.accessModel === "FREE",
       locked: !(await hasAccess(user.id, "PAPER", paper.id)),
       itemType: "PAPER" as const,
-      href: "/library",
+      href: readerHref("PAPER", paper.id),
       accessModel: paper.accessModel,
       inGoalPath: Boolean(activeGoalTag && paper.targetExamGoals.includes(activeGoalTag)),
     })),

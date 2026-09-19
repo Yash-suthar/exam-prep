@@ -24,7 +24,9 @@ npm run db:setup
 npm run dev
 ```
 
-With the dev server running, `npm run e2e` drives a real browser through signup, onboarding, goal setup, the study timer, the syllabus board, the admin exam builder, the mobile exam hall, and password reset. `npm run check:marking` verifies the option and negative-marking rules without a browser.
+With the dev server running, `npm run e2e` drives a real browser through signup, onboarding, goal setup, the study timer, the syllabus board, the admin exam builder, the mobile exam hall, and password reset. `npm run check:marking` verifies the option and negative-marking rules without a browser, and `npm run check:reader` confirms owned items open a PDF that actually paints.
+
+The seed writes a real PDF for every catalog item — genuine notes for books and materials (formulas, worked examples, practice sets) and question papers for the previous-paper entries. No two items share a file.
 
 The app listens on [http://127.0.0.1:43147](http://127.0.0.1:43147).
 
@@ -59,6 +61,7 @@ Supporting mechanics: a readiness score out of 100 (syllabus coverage, mock accu
 - Home: goal strip, hall stats, targeted notices, today’s checklist, weak topics, recommendations
 - Mock hall: instructions screen, NTA-style palette, mark for review, lock-once OMR
 - Scorecard: rank and percentile in this hall, time taken, topic analysis, answer review
+- An in-app reader for books, materials, and papers at `/read/<type>/<id>`, with page navigation and zoom. Files are served through a short-lived signed link after a server-side access check; locked items redirect back to the catalog
 - Catalog search, My library tab, invoices/receipts
 - Notice board with targeting, schedule, attachments, and a detail page
 - Self-serve password reset (link is shown on screen — no mail provider is configured)

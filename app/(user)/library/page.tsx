@@ -2,6 +2,7 @@ import { CatalogCard } from "@/components/catalog/catalog-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { hasAccess } from "@/lib/access-control";
 import { prisma } from "@/lib/prisma";
+import { readerHref } from "@/lib/reader-links";
 import { requireUser } from "@/lib/session";
 
 export default async function LibraryPage() {
@@ -80,7 +81,7 @@ export default async function LibraryPage() {
               isFree={book.isFree}
               locked={false}
               itemType="BOOK"
-              href="/library"
+              href={readerHref("BOOK", book.id)}
             />
           ) : null,
         )}
@@ -97,7 +98,7 @@ export default async function LibraryPage() {
               isFree={material.isFree}
               locked={false}
               itemType="MATERIAL"
-              href="/library"
+              href={readerHref("MATERIAL", material.id)}
             />
           ) : null,
         )}
@@ -114,7 +115,7 @@ export default async function LibraryPage() {
               isFree={paper.isFree}
               locked={false}
               itemType="PAPER"
-              href="/library"
+              href={readerHref("PAPER", paper.id)}
             />
           ) : null,
         )}
@@ -131,7 +132,7 @@ export default async function LibraryPage() {
               isFree={exam.isFree}
               locked={false}
               itemType="EXAM"
-              href={`/exams/${exam.id}/attempt`}
+              href={`/exams/${exam.id}/instructions`}
             />
           ) : null,
         )}

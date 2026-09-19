@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ItemType } from "@prisma/client";
 import { toast } from "sonner";
@@ -24,10 +25,14 @@ export function BuyButton({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
-  if (!locked && href) {
-    return (
+  if (!locked) {
+    return href ? (
       <Button asChild>
-        <a href={href}>Open</a>
+        <Link href={href}>{itemType === "EXAM" ? "Start" : "Read"}</Link>
+      </Button>
+    ) : (
+      <Button variant="outline" disabled>
+        No file yet
       </Button>
     );
   }

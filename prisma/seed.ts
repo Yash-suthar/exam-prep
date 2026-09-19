@@ -4,6 +4,68 @@ import bcrypt from "bcryptjs";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { DayStatus, EducationLevel, PrismaClient, TopicStatus } from "@prisma/client";
 import { defaultMilestones, syllabusTemplate } from "../lib/syllabus-templates";
+import { NOTE_DOCS, writeNotesPdf } from "./notes-content";
+
+/** Every catalog item gets its own PDF, keyed by slug. */
+const notesPath = new Map<string, string>();
+
+async function writeAllNotes() {
+  for (const doc of NOTE_DOCS) {
+    const rel = `uploads/${doc.slug}.pdf`;
+    await writeNotesPdf(path.join(process.cwd(), rel), doc);
+    notesPath.set(doc.slug, rel);
+  }
+}
+
+function notes(slug: string) {
+  const rel = notesPath.get(slug);
+  if (!rel) throw new Error(`No notes PDF generated for "${slug}"`);
+  return rel;
+}
+
+const PAST_PAPERS = [
+  {
+    slug: "ssc-cgl-2023-tier1",
+    heading: "SSC CGL 2023 Tier-1 (Shift 2)",
+    rubric: "Duration: 60 minutes    Maximum marks: 200    Negative marking: 0.50",
+  },
+  {
+    slug: "ibps-po-prelims-2022",
+    heading: "IBPS PO Prelims 2022",
+    rubric: "Duration: 60 minutes    Maximum marks: 100    Negative marking: 0.25",
+  },
+  {
+    slug: "state-psc-gs-2024",
+    heading: "State PSC General Studies 2024",
+    rubric: "Duration: 120 minutes    Maximum marks: 200    Negative marking: 0.33",
+  },
+  {
+    slug: "jee-main-2024-jan",
+    heading: "JEE Main 2024 - January session",
+    rubric: "Duration: 180 minutes    Maximum marks: 300    Negative marking: 1.00",
+  },
+  {
+    slug: "neet-ug-2023",
+    heading: "NEET UG 2023",
+    rubric: "Duration: 200 minutes    Maximum marks: 720    Negative marking: 1.00",
+  },
+];
+
+const pastPaperPath = new Map<string, string>();
+
+async function writePastPapers() {
+  for (const paper of PAST_PAPERS) {
+    const rel = `uploads/${paper.slug}.pdf`;
+    await writePaperPdf(path.join(process.cwd(), rel), paper.heading, paper.rubric);
+    pastPaperPath.set(paper.slug, rel);
+  }
+}
+
+function pastPaper(slug: string) {
+  const rel = pastPaperPath.get(slug);
+  if (!rel) throw new Error(`No past paper generated for "${slug}"`);
+  return rel;
+}
 
 const prisma = new PrismaClient();
 
@@ -103,27 +165,31 @@ const OPTIONS = [
   ["Lungs", "Kidneys", "Heart", "Liver"],
 ];
 
-async function writePaperPdf(filePath: string) {
+async function writePaperPdf(
+  filePath: string,
+  heading = "SSC CGL Tier-1 - General Ability (Set A)",
+  rubric = "Duration: 15 minutes    Maximum marks: 40    Negative marking: 0.50",
+) {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.TimesRoman);
   const bold = await pdf.embedFont(StandardFonts.TimesRomanBold);
 
   for (let pageIndex = 0; pageIndex < 4; pageIndex += 1) {
     const page = pdf.addPage([595, 842]);
-    page.drawText("MeritPath Mock Paper", {
+    page.drawText("MeritPath Question Paper", {
       x: 48,
       y: 800,
       size: 11,
       font: bold,
       color: rgb(0.05, 0.46, 0.43),
     });
-    page.drawText("SSC CGL Tier-1 - General Ability (Set A)", {
+    page.drawText(winAnsi(heading), {
       x: 48,
       y: 778,
       size: 16,
       font: bold,
     });
-    page.drawText("Duration: 15 minutes    Maximum marks: 40    Negative marking: 0.50", {
+    page.drawText(winAnsi(rubric), {
       x: 48,
       y: 756,
       size: 10,
@@ -293,6 +359,8 @@ async function main() {
 
   const paperRel = "uploads/ssc-cgl-tier1.pdf";
   await writePaperPdf(path.join(process.cwd(), paperRel));
+  await writeAllNotes();
+  await writePastPapers();
 
   const passwordHash = await bcrypt.hash("MeritPath@Student1", 12);
   const adminHash = await bcrypt.hash("MeritPath@Admin1", 12);
@@ -410,7 +478,7 @@ async function main() {
     data: {
       title: "Arithmetic for SSC — Class Notes",
       subjectId: quant.id,
-      fileUrl: paperRel,
+      fileUrl: notes("arithmetic-ssc-notes"),
       price: 199,
       isFree: false,
       accessModel: "PAID",
@@ -423,7 +491,7 @@ async function main() {
       {
         title: "Puzzle Workbook",
         subjectId: reasoning.id,
-        fileUrl: paperRel,
+        fileUrl: notes("puzzle-workbook"),
         price: 149,
         isFree: false,
         accessModel: "PAID",
@@ -432,7 +500,7 @@ async function main() {
       {
         title: "Error Spotting Pack",
         subjectId: english.id,
-        fileUrl: paperRel,
+        fileUrl: notes("error-spotting-pack"),
         price: 0,
         isFree: true,
         accessModel: "FREE",
@@ -441,7 +509,7 @@ async function main() {
       {
         title: "Polity Capsules",
         subjectId: gs.id,
-        fileUrl: paperRel,
+        fileUrl: notes("polity-capsules"),
         price: 129,
         isFree: false,
         accessModel: "PAID",
@@ -452,7 +520,7 @@ async function main() {
       {
         title: "NCERT Physics 12 — Fast notes",
         subjectId: quant.id,
-        fileUrl: paperRel,
+        fileUrl: notes("ncert-physics-12"),
         price: 0,
         isFree: true,
         accessModel: "FREE",
@@ -461,7 +529,7 @@ async function main() {
       {
         title: "Organic Chemistry Drill",
         subjectId: biology.id,
-        fileUrl: paperRel,
+        fileUrl: notes("organic-chemistry-drill"),
         price: 0,
         isFree: false,
         accessModel: "FREE_TRIAL",
@@ -471,7 +539,7 @@ async function main() {
       {
         title: "Board Maths 12 — Target 90",
         subjectId: quant.id,
-        fileUrl: paperRel,
+        fileUrl: notes("board-maths-12"),
         price: 179,
         isFree: false,
         accessModel: "PAID",
@@ -480,7 +548,7 @@ async function main() {
       {
         title: "Banking DI Workbook",
         subjectId: quant.id,
-        fileUrl: paperRel,
+        fileUrl: notes("banking-di-workbook"),
         price: 159,
         isFree: false,
         accessModel: "PAID",
@@ -493,7 +561,7 @@ async function main() {
     data: [
       {
         title: "Number System one-pager",
-        fileUrl: paperRel,
+        fileUrl: notes("number-system-one-pager"),
         price: 49,
         isFree: false,
         tags: ["quant", "ssc", "arithmetic"],
@@ -502,7 +570,7 @@ async function main() {
       },
       {
         title: "Syllogism maps",
-        fileUrl: paperRel,
+        fileUrl: notes("syllogism-maps"),
         price: 0,
         isFree: true,
         tags: ["reasoning", "syllogism"],
@@ -511,7 +579,7 @@ async function main() {
       },
       {
         title: "Current affairs — last 90 days",
-        fileUrl: paperRel,
+        fileUrl: notes("current-affairs-90-days"),
         price: 79,
         isFree: false,
         tags: ["gs", "banking"],
@@ -520,7 +588,7 @@ async function main() {
       },
       {
         title: "Percentages speed sheet",
-        fileUrl: paperRel,
+        fileUrl: notes("percentages-speed-sheet"),
         price: 0,
         isFree: true,
         tags: ["percentages", "quant"],
@@ -529,7 +597,7 @@ async function main() {
       },
       {
         title: "Vocabulary — candid to scarce",
-        fileUrl: paperRel,
+        fileUrl: notes("vocabulary-candid-to-scarce"),
         price: 0,
         isFree: false,
         tags: ["vocabulary", "english"],
@@ -539,7 +607,7 @@ async function main() {
       },
       {
         title: "NEET Biology — kidneys & lungs",
-        fileUrl: paperRel,
+        fileUrl: notes("neet-biology-kidneys-lungs"),
         price: 0,
         isFree: true,
         tags: ["biology", "neet"],
@@ -548,7 +616,7 @@ async function main() {
       },
       {
         title: "JEE kinematics flash",
-        fileUrl: paperRel,
+        fileUrl: notes("jee-kinematics-flash"),
         price: 59,
         isFree: false,
         tags: ["jee", "physics"],
@@ -557,7 +625,7 @@ async function main() {
       },
       {
         title: "Board chemistry reactions",
-        fileUrl: paperRel,
+        fileUrl: notes("board-chemistry-reactions"),
         price: 0,
         isFree: true,
         tags: ["boards", "chemistry"],
@@ -566,7 +634,7 @@ async function main() {
       },
       {
         title: "Polity — Rajya Sabha notes",
-        fileUrl: paperRel,
+        fileUrl: notes("polity-rajya-sabha-notes"),
         price: 39,
         isFree: false,
         tags: ["polity", "gs"],
@@ -584,7 +652,7 @@ async function main() {
         title: "SSC CGL 2023 Tier-1 (Shift 2)",
         subjectId: quant.id,
         year: 2023,
-        fileUrl: paperRel,
+        fileUrl: pastPaper("ssc-cgl-2023-tier1"),
         price: 99,
         isFree: false,
         accessModel: "PAID",
@@ -594,7 +662,7 @@ async function main() {
         title: "IBPS PO Prelims 2022",
         subjectId: reasoning.id,
         year: 2022,
-        fileUrl: paperRel,
+        fileUrl: pastPaper("ibps-po-prelims-2022"),
         price: 0,
         isFree: true,
         accessModel: "FREE",
@@ -604,7 +672,7 @@ async function main() {
         title: "State PSC GS paper 2024",
         subjectId: gs.id,
         year: 2024,
-        fileUrl: paperRel,
+        fileUrl: pastPaper("state-psc-gs-2024"),
         price: 79,
         isFree: false,
         accessModel: "PAID",
@@ -616,7 +684,7 @@ async function main() {
         title: "JEE Main 2024 January",
         subjectId: quant.id,
         year: 2024,
-        fileUrl: paperRel,
+        fileUrl: pastPaper("jee-main-2024-jan"),
         price: 89,
         isFree: false,
         accessModel: "PAID",
@@ -626,7 +694,7 @@ async function main() {
         title: "NEET UG 2023",
         subjectId: biology.id,
         year: 2023,
-        fileUrl: paperRel,
+        fileUrl: pastPaper("neet-ug-2023"),
         price: 0,
         isFree: true,
         accessModel: "FREE",

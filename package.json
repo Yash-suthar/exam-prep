@@ -12,6 +12,7 @@
     "db:setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
     "e2e": "node scripts/e2e.mjs",
     "check:marking": "tsx scripts/marking-check.ts",
+    "check:reader": "node scripts/reader-check.mjs",
     "postinstall": "mkdir -p public && cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs"
   },
   "prisma": {

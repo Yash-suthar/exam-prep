@@ -1,6 +1,7 @@
 import { AccessModel, ItemType } from "@prisma/client";
 import { hasAccess } from "@/lib/access-control";
 import { prisma } from "@/lib/prisma";
+import { readerHref } from "@/lib/reader-links";
 import { scoreAudience, type Audience, type Targetable } from "@/lib/targeting";
 
 export type RecItem = {
@@ -90,7 +91,7 @@ export async function recommendedCatalog(
       "BOOK",
       new Map(books.map((item) => [item.id, item.subject.name])),
       activeGoal,
-      (_, allowed) => (allowed ? "/library" : undefined),
+      (id, allowed) => (allowed ? readerHref("BOOK", id) : undefined),
     ),
     toCards(
       userId,
@@ -100,7 +101,7 @@ export async function recommendedCatalog(
         materials.map((item) => [item.id, item.tags.length ? item.tags.join(" · ") : "Notes"]),
       ),
       activeGoal,
-      (_, allowed) => (allowed ? "/library" : undefined),
+      (id, allowed) => (allowed ? readerHref("MATERIAL", id) : undefined),
     ),
     toCards(
       userId,
@@ -113,7 +114,7 @@ export async function recommendedCatalog(
         ]),
       ),
       activeGoal,
-      (_, allowed) => (allowed ? "/library" : undefined),
+      (id, allowed) => (allowed ? readerHref("PAPER", id) : undefined),
     ),
     toCards(
       userId,

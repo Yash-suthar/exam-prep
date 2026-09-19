@@ -32,6 +32,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
             type="button"
             size="icon"
             variant="ghost"
+            aria-label="Previous page"
             onClick={() => setPage((value) => Math.max(1, value - 1))}
             disabled={page <= 1}
           >
@@ -44,6 +45,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
             type="button"
             size="icon"
             variant="ghost"
+            aria-label="Next page"
             onClick={() => setPage((value) => Math.min(numPages || 1, value + 1))}
             disabled={!numPages || page >= numPages}
           >
@@ -55,6 +57,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
             type="button"
             size="icon"
             variant="ghost"
+            aria-label="Zoom out"
             onClick={() => setScale((value) => Math.max(0.7, value - 0.1))}
           >
             <Minus className="h-4 w-4" />
@@ -63,6 +66,7 @@ export function PdfViewer({ fileUrl }: { fileUrl: string }) {
             type="button"
             size="icon"
             variant="ghost"
+            aria-label="Zoom in"
             onClick={() => setScale((value) => Math.min(1.8, value + 0.1))}
           >
             <Plus className="h-4 w-4" />

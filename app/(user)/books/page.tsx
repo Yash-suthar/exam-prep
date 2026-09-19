@@ -3,6 +3,7 @@ import { getStudentContext } from "@/lib/audience";
 import { getCategoryTemplate } from "@/lib/category-templates";
 import { hasAccess } from "@/lib/access-control";
 import { prisma } from "@/lib/prisma";
+import { readerHref } from "@/lib/reader-links";
 import { requireUser } from "@/lib/session";
 
 export default async function BooksPage() {
@@ -22,7 +23,7 @@ export default async function BooksPage() {
       isFree: book.isFree || book.accessModel === "FREE",
       locked: !(await hasAccess(user.id, "BOOK", book.id)),
       itemType: "BOOK" as const,
-      href: "/library",
+      href: readerHref("BOOK", book.id),
       accessModel: book.accessModel,
       inGoalPath: Boolean(activeGoalTag && book.targetExamGoals.includes(activeGoalTag)),
     })),
