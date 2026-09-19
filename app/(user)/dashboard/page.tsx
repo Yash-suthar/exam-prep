@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getStudentContext } from "@/lib/audience";
 import { dayStart, formatDay } from "@/lib/dates";
+import { loadGoalContext } from "@/lib/goal-context";
 import { visibleNotices } from "@/lib/notices";
 import { recommendedCatalog } from "@/lib/recommendations";
 import { requireUser } from "@/lib/session";
@@ -15,10 +16,11 @@ import { examLabel } from "@/lib/taxonomy";
 export default async function DashboardPage() {
   const user = await requireUser();
   const { profile, goal, audience, activeGoalTag } = await getStudentContext(user.id);
-  const [notices, recs, progress] = await Promise.all([
+  const [notices, recs, progress, goalContext] = await Promise.all([
     visibleNotices(audience, 2),
     recommendedCatalog(user.id, audience, activeGoalTag, 6),
     studentProgress(user.id),
+    loadGoalContext(user.id),
   ]);
   const today = dayStart();
   const todayLog = goal?.dailyLogs.find((log) => log.date.getTime() === today.getTime());
@@ -38,6 +40,42 @@ export default async function DashboardPage() {
             : "Finish onboarding tags to sharpen recommendations."}
         </p>
       </div>
+
+      {goalContext ? (
+        <Link
+          href="/goals"
+          className="block rounded-3xl border border-primary/30 bg-primary/5 p-5 transition-colors hover:bg-primary/10"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                Your goal
+              </p>
+              <p className="mt-1 font-display text-xl font-semibold">
+                {examLabel(goalContext.goal.examTag ?? "boards")}
+                {goalContext.days != null && goalContext.days > 0
+                  ? ` · ${goalContext.days} days left`
+                  : ""}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{goalContext.verdict}</p>
+            </div>
+            <div className="flex gap-4 text-center">
+              <GoalChip label="Readiness" value={`${goalContext.readiness}`} />
+              <GoalChip label="Streak" value={`${goalContext.streak}d`} />
+              <GoalChip label="Syllabus" value={`${goalContext.coverage.percent}%`} />
+            </div>
+          </div>
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-background">
+            <div
+              className="h-full rounded-full bg-primary"
+              style={{ width: `${goalContext.week.minutesPercent}%` }}
+            />
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {goalContext.week.minutes} of {goalContext.week.minutesTarget} study minutes this week
+          </p>
+        </Link>
+      ) : null}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Mocks sat" value={String(progress.mocksTaken)} hint="Submitted papers" />
@@ -130,6 +168,15 @@ export default async function DashboardPage() {
       <RecommendationRow title="Study materials" href="/materials" items={recs.materials} />
       <RecommendationRow title="Previous papers" href="/papers" items={recs.papers} />
       <RecommendationRow title="Mocks" href="/exams" items={recs.exams} />
+    </div>
+  );
+}
+
+function GoalChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="font-display text-2xl font-semibold">{value}</p>
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
     </div>
   );
 }

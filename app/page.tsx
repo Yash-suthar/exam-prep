@@ -150,6 +150,36 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-6xl px-4 pb-16">
+        <div className="rounded-3xl border border-primary/30 bg-primary/5 p-6 sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            The part nobody else does properly
+          </p>
+          <h2 className="mt-2 max-w-2xl font-display text-3xl font-semibold">
+            A goal that actually knows your syllabus
+          </h2>
+          <p className="mt-3 max-w-2xl text-muted-foreground">
+            Pick SSC and you get the real SSC syllabus loaded — Quant, Reasoning,
+            English, GA, every topic. Move each topic from Not started to Mastered,
+            log study minutes with the built-in timer, and watch one number tell you
+            whether you will be ready on exam day.
+          </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Readiness score", "Syllabus coverage, mock accuracy, weekly minutes, and streak in one number."],
+              ["Study timer", "Start it, pick a topic, and the minutes land on your week and your topic history."],
+              ["Rest days", "Mark Sunday as rest. Your streak survives the day you planned to skip."],
+              ["Required pace", "“2 topics a day” — computed from what is left and how many days remain."],
+            ].map(([title, body]) => (
+              <div key={title} className="rounded-2xl bg-card p-4">
+                <p className="text-sm font-semibold">{title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto grid max-w-6xl gap-4 px-4 pb-16 md:grid-cols-3">
         {[
           {
