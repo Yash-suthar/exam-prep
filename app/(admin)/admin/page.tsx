@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { BookOpen, ClipboardList, LayoutDashboard, Megaphone, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatInr } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
@@ -8,70 +11,95 @@ export default async function AdminOverviewPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [users, exams, purchases, monthRevenue] = await Promise.all([
+  const [users, exams, books, notices, monthRevenue] = await Promise.all([
     prisma.user.count(),
-    prisma.exam.count({ where: { isPublished: true } }),
-    prisma.purchase.findMany({
-      where: { status: "SUCCESS" },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-      include: { user: true },
-    }),
+    prisma.exam.count(),
+    prisma.book.count(),
+    prisma.notice.count(),
     prisma.purchase.aggregate({
       where: { status: "SUCCESS", createdAt: { gte: monthStart } },
       _sum: { amount: true },
     }),
   ]);
 
+  const tiles = [
+    {
+      href: "/admin/users",
+      title: "Users",
+      value: String(users),
+      hint: "Suspend, grant access, change role",
+      icon: Users,
+      action: "Manage users",
+    },
+    {
+      href: "/admin/content",
+      title: "Catalog",
+      value: String(books),
+      hint: "CRUD books, notes, and papers",
+      icon: BookOpen,
+      action: "Add or edit content",
+    },
+    {
+      href: "/admin/exams",
+      title: "Exams",
+      value: String(exams),
+      hint: "Build, publish, or delete mocks",
+      icon: ClipboardList,
+      action: "Open exam builder",
+    },
+    {
+      href: "/admin/notices",
+      title: "Notices",
+      value: String(notices),
+      hint: "Pin, target, schedule, attach files",
+      icon: Megaphone,
+      action: "Write a notice",
+    },
+  ];
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-4xl font-semibold">Admin overview</h1>
+        <p className="text-sm font-semibold text-primary">Admin console</p>
+        <h1 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">Manage MeritPath</h1>
         <p className="mt-2 text-muted-foreground">
-          Users, published mocks, and this month&apos;s demo revenue.
+          This is not the student app. Create and edit everything from the tiles below.
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Metric title="Users" value={String(users)} />
-        <Metric title="Published exams" value={String(exams)} />
-        <Metric
-          title="Revenue this month"
-          value={formatInr(monthRevenue._sum.amount ?? 0)}
-        />
+      <div className="grid gap-4 sm:grid-cols-2">
+        {tiles.map((tile) => {
+          const Icon = tile.icon;
+          return (
+            <Card key={tile.href}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{tile.title}</p>
+                  <Icon className="h-4 w-4 text-primary" />
+                </div>
+                <CardTitle className="text-3xl">{tile.value}</CardTitle>
+                <p className="text-sm text-muted-foreground">{tile.hint}</p>
+              </CardHeader>
+              <CardContent>
+                <Button asChild>
+                  <Link href={tile.href}>{tile.action}</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Recent purchases</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            This month
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {purchases.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No purchases yet.</p>
-          ) : (
-            purchases.map((purchase) => (
-              <div
-                key={purchase.id}
-                className="flex justify-between text-sm"
-              >
-                <span>
-                  {purchase.user.name} · {purchase.itemType}
-                </span>
-                <span className="font-semibold">{formatInr(purchase.amount)}</span>
-              </div>
-            ))
-          )}
+        <CardContent className="text-sm text-muted-foreground">
+          Demo revenue {formatInr(monthRevenue._sum.amount ?? 0)}. Student view is optional — use it only to preview
+          what a learner sees.
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function Metric({ title, value }: { title: string; value: string }) {
-  return (
-    <Card>
-      <CardHeader>
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-        <CardTitle className="text-3xl">{value}</CardTitle>
-      </CardHeader>
-    </Card>
   );
 }

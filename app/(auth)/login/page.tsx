@@ -17,9 +17,9 @@ export default async function LoginPage({
         <Logo className="mb-6" />
         <h1 className="font-display text-3xl font-semibold">Welcome back</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Student demo: student@meritpath.in / MeritPath@Student1
+          Student: student@meritpath.in / MeritPath@Student1
           <br />
-          Admin demo: admin@meritpath.in / MeritPath@Admin1
+          Admin opens the console: admin@meritpath.in / MeritPath@Admin1
         </p>
         <AuthForm
           action={loginUser}

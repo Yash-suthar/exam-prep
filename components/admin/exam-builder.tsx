@@ -11,26 +11,44 @@ import { optionLabels } from "@/lib/utils";
 
 type Subject = { id: string; name: string };
 
+type ExamDraft = {
+  id: string;
+  title: string;
+  subjectId: string | null;
+  durationMinutes: number;
+  price: number;
+  isFree: boolean;
+  totalQuestions: number;
+  optionsCount: number;
+  marksPerQuestion: number;
+  negativeMarking: number;
+  rawPaperFileUrl: string;
+  isPublished: boolean;
+  answerKey: string[];
+};
+
 export function ExamBuilder({
   subjects,
   samplePaperUrl,
+  initial,
 }: {
   subjects: Subject[];
   samplePaperUrl: string;
+  initial?: ExamDraft;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [title, setTitle] = useState("");
-  const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? "");
-  const [durationMinutes, setDurationMinutes] = useState(20);
-  const [price, setPrice] = useState(0);
-  const [isFree, setIsFree] = useState(true);
-  const [totalQuestions, setTotalQuestions] = useState(20);
-  const [optionsCount, setOptionsCount] = useState(4);
-  const [marksPerQuestion, setMarksPerQuestion] = useState(2);
-  const [negativeMarking, setNegativeMarking] = useState(0.5);
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [subjectId, setSubjectId] = useState(initial?.subjectId ?? subjects[0]?.id ?? "");
+  const [durationMinutes, setDurationMinutes] = useState(initial?.durationMinutes ?? 20);
+  const [price, setPrice] = useState(initial?.price ?? 0);
+  const [isFree, setIsFree] = useState(initial?.isFree ?? true);
+  const [totalQuestions, setTotalQuestions] = useState(initial?.totalQuestions ?? 20);
+  const [optionsCount, setOptionsCount] = useState(initial?.optionsCount ?? 4);
+  const [marksPerQuestion, setMarksPerQuestion] = useState(initial?.marksPerQuestion ?? 2);
+  const [negativeMarking, setNegativeMarking] = useState(initial?.negativeMarking ?? 0.5);
   const [answerKey, setAnswerKey] = useState<string[]>(
-    Array.from({ length: 20 }, () => "A"),
+    initial?.answerKey ?? Array.from({ length: initial?.totalQuestions ?? 20 }, () => "A"),
   );
   const [busy, setBusy] = useState(false);
 
@@ -46,6 +64,7 @@ export function ExamBuilder({
   async function onPublish() {
     setBusy(true);
     const result = await publishExam({
+      id: initial?.id,
       title,
       subjectId,
       durationMinutes,
@@ -57,14 +76,14 @@ export function ExamBuilder({
       isFree,
       rawPaperFileUrl: samplePaperUrl,
       answerKey,
-      isPublished: true,
+      isPublished: initial?.isPublished ?? true,
     });
     setBusy(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    toast.success("Exam published.");
+    toast.success(initial?.id ? "Exam updated." : "Exam published.");
     router.push("/admin/exams");
     router.refresh();
   }
@@ -222,7 +241,7 @@ export function ExamBuilder({
           </Button>
         ) : (
           <Button type="button" onClick={onPublish} disabled={busy || !title}>
-            {busy ? "Publishing…" : "Publish exam"}
+            {busy ? "Saving…" : initial?.id ? "Save exam" : "Publish exam"}
           </Button>
         )}
       </div>

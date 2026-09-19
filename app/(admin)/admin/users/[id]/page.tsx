@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { GrantForm } from "@/components/admin/grant-form";
+import { RevokeGrantButton } from "@/components/admin/revoke-grant-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { itemTypeLabel } from "@/lib/utils";
@@ -42,6 +43,7 @@ export default async function AdminUserDetailPage({
       <GrantForm
         userId={user.id}
         suspended={user.suspended}
+        role={user.role}
         items={{ books, materials, papers, exams, plans }}
       />
       <Card>
@@ -69,11 +71,14 @@ export default async function AdminUserDetailPage({
             <p className="text-sm text-muted-foreground">No grants.</p>
           ) : (
             user.accessGrants.map((grant) => (
-              <div key={grant.id} className="flex items-center justify-between text-sm">
+              <div key={grant.id} className="flex items-center justify-between gap-3 text-sm">
                 <span>
                   {itemTypeLabel(grant.itemType)} · {grant.itemId}
                 </span>
-                <Badge>{grant.expiresAt ? "expiring" : "lifetime"}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge>{grant.expiresAt ? "expiring" : "lifetime"}</Badge>
+                  <RevokeGrantButton grantId={grant.id} userId={user.id} />
+                </div>
               </div>
             ))
           )}

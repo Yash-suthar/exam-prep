@@ -68,13 +68,22 @@ export async function loginUser(
 ): Promise<AuthFormState> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const callbackUrl = String(formData.get("callbackUrl") ?? "/dashboard");
+  const callbackUrl = String(formData.get("callbackUrl") ?? "");
+  const existing = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+    select: { role: true },
+  });
+  const fallback = existing?.role === "ADMIN" ? "/admin" : "/dashboard";
+  const redirectTo =
+    callbackUrl && callbackUrl !== "/dashboard" && callbackUrl !== "/"
+      ? callbackUrl
+      : fallback;
 
   try {
     await signIn("credentials", {
       email,
       password,
-      redirectTo: callbackUrl || "/dashboard",
+      redirectTo,
     });
   } catch (error) {
     if (error instanceof AuthError) {

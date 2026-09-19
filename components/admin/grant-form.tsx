@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ItemType } from "@prisma/client";
 import { toast } from "sonner";
-import { grantAccess, toggleUserSuspended } from "@/app/actions/admin";
+import { grantAccess, setUserRole, toggleUserSuspended } from "@/app/actions/admin";
 import { Button } from "@/components/ui/button";
 
 type Item = { id: string; title?: string; name?: string };
@@ -11,10 +11,12 @@ type Item = { id: string; title?: string; name?: string };
 export function GrantForm({
   userId,
   suspended,
+  role,
   items,
 }: {
   userId: string;
   suspended: boolean;
+  role: "ADMIN" | "USER";
   items: {
     books: Item[];
     materials: Item[];
@@ -91,17 +93,31 @@ export function GrantForm({
           Grant access
         </Button>
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={async () => {
-          const result = await toggleUserSuspended(userId, !suspended);
-          if (!result.ok) toast.error(result.error);
-          else toast.success(suspended ? "User reinstated." : "User suspended.");
-        }}
-      >
-        {suspended ? "Reinstate user" : "Suspend user"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={async () => {
+            const result = await toggleUserSuspended(userId, !suspended);
+            if (!result.ok) toast.error(result.error);
+            else toast.success(suspended ? "User reinstated." : "User suspended.");
+          }}
+        >
+          {suspended ? "Reinstate user" : "Suspend user"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={async () => {
+            const next = role === "ADMIN" ? "USER" : "ADMIN";
+            const result = await setUserRole(userId, next);
+            if (!result.ok) toast.error(result.error);
+            else toast.success(`Role set to ${next}.`);
+          }}
+        >
+          Make {role === "ADMIN" ? "student" : "admin"}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExamActions } from "@/components/admin/exam-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,11 +15,11 @@ export default async function AdminExamsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-4xl font-semibold">Exams</h1>
+          <h1 className="font-display text-3xl font-semibold sm:text-4xl">Exams</h1>
           <p className="mt-2 text-muted-foreground">
-            Publish a mock with a compact answer-key grid.
+            Build a mock, edit the key, publish it, or take it down.
           </p>
         </div>
         <Button asChild>
@@ -29,7 +30,7 @@ export default async function AdminExamsPage() {
         {exams.map((exam) => (
           <Card key={exam.id}>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle>{exam.title}</CardTitle>
                 {exam.isPublished ? (
                   <Badge tone="success">Published</Badge>
@@ -38,9 +39,12 @@ export default async function AdminExamsPage() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              {exam._count.questions} questions · {exam._count.attempts} attempts · −
-              {exam.negativeMarking}
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {exam._count.questions} questions · {exam._count.attempts} attempts · −
+                {exam.negativeMarking}
+              </p>
+              <ExamActions examId={exam.id} published={exam.isPublished} />
             </CardContent>
           </Card>
         ))}

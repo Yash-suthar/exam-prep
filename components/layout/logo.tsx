@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({ className, href = "/" }: { className?: string; href?: string }) {
   return (
-    <Link href="/" className={cn("flex items-center gap-2", className)}>
+    <Link href={href} className={cn("flex items-center gap-2", className)}>
       <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary font-display text-sm font-bold text-primary-foreground">
         M
       </span>
