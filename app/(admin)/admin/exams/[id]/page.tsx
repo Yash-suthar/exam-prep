@@ -42,6 +42,12 @@ export default async function EditExamPage({
           rawPaperFileUrl: exam.rawPaperFileUrl,
           isPublished: exam.isPublished,
           answerKey: exam.questions.map((question) => question.correctOption),
+          topics: exam.questions.map((question) => question.topic),
+          accessModel: exam.accessModel,
+          trialDurationDays: exam.trialDurationDays,
+          targetEducationLevels: exam.targetEducationLevels,
+          targetStandards: exam.targetStandards,
+          targetExamGoals: exam.targetExamGoals,
         }}
       />
     </div>

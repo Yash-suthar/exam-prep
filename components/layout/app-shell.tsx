@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 const userLinks = [
   { href: "/dashboard", label: "Home" },
-  { href: "/goals", label: "Goal" },
+  { href: "/goals", label: "My goal" },
   { href: "/exams", label: "Exams" },
   { href: "/books", label: "Books" },
   { href: "/materials", label: "Materials" },

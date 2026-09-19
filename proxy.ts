@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 
+const publicPrefixes = ["/reset-password", "/forgot-password"];
+
 const protectedPrefixes = [
   "/dashboard",
   "/library",
@@ -18,6 +20,9 @@ const protectedPrefixes = [
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (publicPrefixes.some((prefix) => pathname.startsWith(prefix))) {
+    return NextResponse.next();
+  }
   const needsAuth = protectedPrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

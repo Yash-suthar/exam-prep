@@ -59,6 +59,13 @@ enum AccessModel {
   FREE_TRIAL
 }
 
+enum TopicStatus {
+  NOT_STARTED
+  LEARNING
+  REVISING
+  MASTERED
+}
+
 model User {
   id           String        @id @default(cuid())
   name         String
@@ -74,6 +81,17 @@ model User {
   profile      UserProfile?
   settings     UserSettings?
   goals        Goal[]
+  resetTokens  PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }
 
 model UserProfile {
@@ -95,18 +113,64 @@ model UserSettings {
 }
 
 model Goal {
-  id            String     @id @default(cuid())
-  userId        String
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type          GoalType
-  examTag       String?
-  targetPercent Float?
-  targetDate    DateTime?
-  targetRank    Int?
-  isActive      Boolean    @default(true)
-  createdAt     DateTime   @default(now())
-  tasks         GoalTask[]
-  dailyLogs     DailyLog[]
+  id                 String          @id @default(cuid())
+  userId             String
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type               GoalType
+  examTag            String?
+  targetPercent      Float?
+  targetDate         DateTime?
+  targetRank         Int?
+  isActive           Boolean         @default(true)
+  dailyMinutesTarget Int             @default(60)
+  weeklyMockTarget   Int             @default(3)
+  restDays           Int[]
+  archivedAt         DateTime?
+  createdAt          DateTime        @default(now())
+  tasks              GoalTask[]
+  dailyLogs          DailyLog[]
+  milestones         GoalMilestone[]
+  topics             SyllabusTopic[]
+  sessions           StudySession[]
+}
+
+model GoalMilestone {
+  id          String    @id @default(cuid())
+  goalId      String
+  goal        Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  title       String
+  dueDate     DateTime?
+  isDone      Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model SyllabusTopic {
+  id            String         @id @default(cuid())
+  goalId        String
+  goal          Goal           @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  subject       String
+  name          String
+  status        TopicStatus    @default(NOT_STARTED)
+  confidence    Int            @default(0)
+  lastRevisedAt DateTime?
+  createdAt     DateTime       @default(now())
+  sessions      StudySession[]
+
+  @@unique([goalId, subject, name])
+}
+
+model StudySession {
+  id        String         @id @default(cuid())
+  goalId    String
+  goal      Goal           @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  topicId   String?
+  topic     SyllabusTopic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  minutes   Int
+  note      String?
+  createdAt DateTime       @default(now())
+
+  @@index([goalId, createdAt])
 }
 
 model GoalTask {
@@ -125,6 +189,7 @@ model DailyLog {
   date        DateTime
   status      DayStatus
   taskResults Json
+  minutes     Int       @default(0)
   createdAt   DateTime  @default(now())
 
   @@unique([goalId, date])

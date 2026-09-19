@@ -2,7 +2,8 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import bcrypt from "bcryptjs";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { DayStatus, EducationLevel, PrismaClient } from "@prisma/client";
+import { DayStatus, EducationLevel, PrismaClient, TopicStatus } from "@prisma/client";
+import { defaultMilestones, syllabusTemplate } from "../lib/syllabus-templates";
 
 const prisma = new PrismaClient();
 
@@ -184,12 +185,81 @@ async function writeLogs(
     } else if (status === "MISSED_EXAM") {
       if (taskIds[1]) results[taskIds[1]] = true;
     }
+    const minutes =
+      status === "COMPLETE" ? 75 + (index % 4) * 15 : status === "PARTIAL" ? 40 : 0;
     await prisma.dailyLog.create({
       data: {
         goalId,
         date: utcDay(pattern.length - 1 - index),
         status,
         taskResults: results,
+        minutes,
+      },
+    });
+  }
+}
+
+async function seedSyllabus(
+  goalId: string,
+  examTag: string,
+  progress: { mastered: number; revising: number; learning: number },
+) {
+  const template = syllabusTemplate(examTag);
+  const flat = template.flatMap((subject) =>
+    subject.topics.map((name) => ({ goalId, subject: subject.subject, name })),
+  );
+  await prisma.syllabusTopic.createMany({ data: flat, skipDuplicates: true });
+
+  const topics = await prisma.syllabusTopic.findMany({
+    where: { goalId },
+    orderBy: { name: "asc" },
+  });
+
+  let index = 0;
+  const assign = async (count: number, status: TopicStatus, staleDays: number) => {
+    for (let step = 0; step < count && index < topics.length; step += 1, index += 1) {
+      await prisma.syllabusTopic.update({
+        where: { id: topics[index].id },
+        data: {
+          status,
+          lastRevisedAt: new Date(Date.now() - staleDays * 86_400_000),
+        },
+      });
+    }
+  };
+
+  await assign(progress.mastered, "MASTERED", 12);
+  await assign(progress.revising, "REVISING", 4);
+  await assign(progress.learning, "LEARNING", 1);
+}
+
+async function seedMilestones(goalId: string, examTag: string, targetDate: Date | null) {
+  const list = defaultMilestones(examTag, targetDate);
+  for (let index = 0; index < list.length; index += 1) {
+    await prisma.goalMilestone.create({
+      data: {
+        goalId,
+        title: list[index].title,
+        dueDate: list[index].dueDate,
+        isDone: index === 0,
+        completedAt: index === 0 ? new Date(Date.now() - 6 * 86_400_000) : null,
+      },
+    });
+  }
+}
+
+async function seedSessions(goalId: string, days: number[], minutes: number[]) {
+  const topics = await prisma.syllabusTopic.findMany({
+    where: { goalId },
+    take: 6,
+  });
+  for (let index = 0; index < days.length; index += 1) {
+    await prisma.studySession.create({
+      data: {
+        goalId,
+        minutes: minutes[index],
+        topicId: topics[index % Math.max(topics.length, 1)]?.id ?? null,
+        createdAt: new Date(Date.now() - days[index] * 86_400_000),
       },
     });
   }
@@ -203,9 +273,13 @@ async function main() {
   await prisma.accessGrant.deleteMany();
   await prisma.purchase.deleteMany();
   await prisma.auditLog.deleteMany();
+  await prisma.studySession.deleteMany();
+  await prisma.syllabusTopic.deleteMany();
+  await prisma.goalMilestone.deleteMany();
   await prisma.dailyLog.deleteMany();
   await prisma.goalTask.deleteMany();
   await prisma.goal.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
   await prisma.userProfile.deleteMany();
   await prisma.userSettings.deleteMany();
   await prisma.categoryTemplate.deleteMany();
@@ -725,6 +799,9 @@ async function main() {
       examTag: "ssc",
       targetDate: new Date("2026-12-04"),
       targetRank: 800,
+      dailyMinutesTarget: 90,
+      weeklyMockTarget: 3,
+      restDays: [0],
       isActive: true,
       tasks: {
         create: [
@@ -744,6 +821,9 @@ async function main() {
       examTag: "ssc",
       targetDate: new Date("2026-12-04"),
       targetRank: 400,
+      dailyMinutesTarget: 120,
+      weeklyMockTarget: 4,
+      restDays: [],
       isActive: true,
       tasks: {
         create: [
@@ -762,6 +842,9 @@ async function main() {
       examTag: "boards",
       targetPercent: 90,
       targetDate: new Date("2026-03-15"),
+      dailyMinutesTarget: 60,
+      weeklyMockTarget: 2,
+      restDays: [0, 6],
       isActive: true,
       tasks: {
         create: [
@@ -827,6 +910,18 @@ async function main() {
     rohanGoal.tasks.map((task) => task.id),
     ["NONE", "PARTIAL", "COMPLETE", "NONE", "PARTIAL", "COMPLETE", "NONE", "PARTIAL"],
   );
+
+  await seedSyllabus(yashGoal.id, "ssc", { mastered: 9, revising: 7, learning: 6 });
+  await seedSyllabus(priyaGoal.id, "ssc", { mastered: 16, revising: 8, learning: 4 });
+  await seedSyllabus(rohanGoal.id, "boards", { mastered: 3, revising: 2, learning: 4 });
+
+  await seedMilestones(yashGoal.id, "ssc", new Date("2026-12-04"));
+  await seedMilestones(priyaGoal.id, "ssc", new Date("2026-12-04"));
+  await seedMilestones(rohanGoal.id, "boards", new Date("2026-03-15"));
+
+  await seedSessions(yashGoal.id, [0, 1, 2, 3, 5, 6], [45, 90, 60, 120, 40, 75]);
+  await seedSessions(priyaGoal.id, [0, 1, 2, 4], [120, 105, 130, 95]);
+  await seedSessions(rohanGoal.id, [1, 3, 4], [35, 50, 45]);
 
   await prisma.purchase.create({
     data: {
