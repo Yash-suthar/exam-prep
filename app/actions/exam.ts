@@ -88,7 +88,25 @@ export async function lockAnswer(input: {
     return { ok: false as const, error: "Time is up. The exam was auto-submitted." };
   }
 
-  try {
+  const existing = await prisma.examAnswer.findUnique({
+    where: {
+      attemptId_questionNo: {
+        attemptId: attempt.id,
+        questionNo: input.questionNo,
+      },
+    },
+  });
+
+  if (existing?.selectedOption) {
+    return { ok: false as const, error: "This bubble is already locked." };
+  }
+
+  if (existing) {
+    await prisma.examAnswer.update({
+      where: { id: existing.id },
+      data: { selectedOption: input.selectedOption },
+    });
+  } else {
     await prisma.examAnswer.create({
       data: {
         attemptId: attempt.id,
@@ -96,11 +114,59 @@ export async function lockAnswer(input: {
         selectedOption: input.selectedOption,
       },
     });
-  } catch {
-    return { ok: false as const, error: "This bubble is already locked." };
   }
 
   return { ok: true as const };
+}
+
+export async function toggleMarkForReview(input: {
+  attemptId: string;
+  questionNo: number;
+}) {
+  const user = await requireUser();
+  const attempt = await prisma.examAttempt.findUnique({
+    where: { id: input.attemptId },
+    include: { exam: true },
+  });
+
+  if (!attempt || attempt.userId !== user.id) {
+    return { ok: false as const, error: "Attempt not found." };
+  }
+  if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+    return { ok: false as const, error: "This attempt is already submitted." };
+  }
+  if (input.questionNo < 1 || input.questionNo > attempt.exam.totalQuestions) {
+    return { ok: false as const, error: "Invalid question number." };
+  }
+
+  const existing = await prisma.examAnswer.findUnique({
+    where: {
+      attemptId_questionNo: {
+        attemptId: attempt.id,
+        questionNo: input.questionNo,
+      },
+    },
+  });
+
+  const markedForReview = !(existing?.markedForReview ?? false);
+
+  await prisma.examAnswer.upsert({
+    where: {
+      attemptId_questionNo: {
+        attemptId: attempt.id,
+        questionNo: input.questionNo,
+      },
+    },
+    update: { markedForReview },
+    create: {
+      attemptId: attempt.id,
+      questionNo: input.questionNo,
+      selectedOption: null,
+      markedForReview,
+    },
+  });
+
+  return { ok: true as const, markedForReview };
 }
 
 export async function submitAttempt(attemptId: string, auto = false) {

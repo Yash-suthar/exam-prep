@@ -14,9 +14,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "MeritPath — timed mocks with a real OMR sheet",
+  title: "MeritPath — lock-once OMR mocks for SSC, banking, JEE, NEET",
   description:
-    "Prepare for SSC, banking, and state exams with locked OMR bubbles, negative marking, and a library of papers.",
+    "Sit a real question paper next to a lock-once OMR sheet. Server-scored negative marking, hall rank, and a goal checklist for Indian exams.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

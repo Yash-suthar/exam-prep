@@ -8,19 +8,26 @@ import { Button } from "@/components/ui/button";
 
 export function StartExamButton({
   examId,
-  label = "Start exam",
+  resume = false,
+  label,
 }: {
   examId: string;
+  resume?: boolean;
   label?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const text = label ?? (resume ? "Resume exam" : "Read instructions");
 
   return (
     <Button
       type="button"
       disabled={busy}
       onClick={async () => {
+        if (!resume) {
+          router.push(`/exams/${examId}/instructions`);
+          return;
+        }
         setBusy(true);
         const result = await startOrResumeAttempt(examId);
         setBusy(false);
@@ -31,7 +38,7 @@ export function StartExamButton({
         router.push(`/exams/${examId}/attempt`);
       }}
     >
-      {busy ? "Opening…" : label}
+      {busy ? "Opening…" : text}
     </Button>
   );
 }

@@ -1,30 +1,40 @@
 import Link from "next/link";
+import { LockSetting } from "@/components/profile/lock-setting";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getStudentContext } from "@/lib/audience";
-import { formatInr, itemTypeLabel } from "@/lib/utils";
+import { invoiceNumber, purchaseLabel, resolveItemTitle } from "@/lib/catalog-titles";
+import { formatInr } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { educationLabel, examLabel } from "@/lib/taxonomy";
 
 export default async function ProfilePage() {
   const user = await requireUser();
-  const [{ profile, goal }, purchases] = await Promise.all([
+  const [{ profile, goal }, purchases, settings] = await Promise.all([
     getStudentContext(user.id),
     prisma.purchase.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.userSettings.findUnique({ where: { userId: user.id } }),
   ]);
+
+  const invoices = await Promise.all(
+    purchases.map(async (purchase) => ({
+      ...purchase,
+      title: await resolveItemTitle(purchase.itemType, purchase.itemId),
+    })),
+  );
 
   return (
     <div className="space-y-6 pb-16">
       <div>
         <h1 className="font-display text-3xl font-semibold sm:text-4xl">Profile</h1>
         <p className="mt-2 text-muted-foreground">
-          {user.name} · {user.email} · {user.role}
+          {user.name} · {user.email}
         </p>
       </div>
 
@@ -61,10 +71,19 @@ export default async function ProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Purchase history</CardTitle>
+          <CardTitle>Exam hall</CardTitle>
         </CardHeader>
         <CardContent>
-          {purchases.length === 0 ? (
+          <LockSetting initial={settings?.confirmBeforeLocking ?? true} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Invoices</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {invoices.length === 0 ? (
             <EmptyState
               title="No invoices yet"
               description="Demo checkout will appear here after you unlock a paid title."
@@ -73,15 +92,17 @@ export default async function ProfilePage() {
             />
           ) : (
             <div className="space-y-3">
-              {purchases.map((purchase) => (
+              {invoices.map((purchase) => (
                 <div
                   key={purchase.id}
                   className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-3"
                 >
                   <div>
-                    <p className="text-sm font-semibold">{itemTypeLabel(purchase.itemType)}</p>
+                    <p className="text-sm font-semibold">
+                      {purchaseLabel(purchase.itemType, purchase.title)}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {purchase.createdAt.toDateString()}
+                      {invoiceNumber(purchase.id)} · {purchase.createdAt.toDateString()}
                       {purchase.expiresAt
                         ? ` · expires ${purchase.expiresAt.toDateString()}`
                         : " · lifetime"}
@@ -90,6 +111,9 @@ export default async function ProfilePage() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{formatInr(purchase.amount)}</span>
                     <Badge tone="success">{purchase.status}</Badge>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/profile/invoices/${purchase.id}`}>Receipt</Link>
+                    </Button>
                   </div>
                 </div>
               ))}

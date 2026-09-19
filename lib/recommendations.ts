@@ -121,7 +121,7 @@ export async function recommendedCatalog(
       "EXAM",
       new Map(exams.map((item) => [item.id, item.subject?.name ?? "Mock exam"])),
       activeGoal,
-      (id, allowed) => (allowed ? `/exams/${id}/attempt` : "/exams"),
+      (id, allowed) => (allowed ? `/exams/${id}/instructions` : "/exams"),
     ),
   ]);
 

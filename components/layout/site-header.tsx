@@ -14,14 +14,17 @@ export function SiteHeader({
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
         <Logo />
         <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
-          <Link href="/books" className="hover:text-foreground">
-            Books
+          <Link href="/about" className="hover:text-foreground">
+            About
           </Link>
           <Link href="/exams" className="hover:text-foreground">
             Mock exams
           </Link>
+          <Link href="/books" className="hover:text-foreground">
+            Books
+          </Link>
           <Link href="/notices" className="hover:text-foreground">
-            Notice board
+            Notices
           </Link>
         </nav>
         <div className="flex items-center gap-2">

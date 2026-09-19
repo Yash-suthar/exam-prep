@@ -1,6 +1,6 @@
 # MeritPath
 
-Exam-prep platform for timed mocks with a split-screen question paper and a lock-once OMR sheet. This slice adds mobile-first onboarding, a Goal page (consistency grid, momentum, focus deck, leaderboard), targeted notices, and recommendation rows.
+Exam-prep hall for timed mocks with a split-screen question paper and a lock-once OMR sheet. The product is built for SSC, banking, boards, JEE, and NEET — onboarding tags, targeted notices, a Goal page, hall rank, and topic analysis after every paper.
 
 ## Stack
 
@@ -39,15 +39,15 @@ New accounts go through signup → onboarding → goal setup before the home pag
 
 Payments fall back to instant demo checkout when Razorpay / Stripe keys are empty.
 
-## What this slice includes
+## What students get
 
 - Multi-step onboarding (who you are, class, exam tags) and Google continue
-- Home: 1–2 notices, today’s checklist, targeted recommendations
+- Home: hall stats, 1–2 targeted notices, today’s checklist, weak topics, recommendations
 - Goal page: heatmap, momentum, focus deck, score projection, peer leaderboard
+- Mock hall: instructions screen, NTA-style palette, mark for review, lock-once OMR
+- Scorecard: rank and percentile in this hall, time taken, topic analysis, answer review
+- Catalog search, My library tab, invoices/receipts
 - Notice board with targeting, schedule, attachments, and a detail page
-- Category templates + My library tab on catalog pages
-- Mobile exam: paper-primary + docked answer bar, expand-to-OMR, lock confirmation toggle
-- Admin notice CRUD and category layout config
 
 ## GitHub
 

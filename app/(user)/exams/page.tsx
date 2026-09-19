@@ -40,7 +40,8 @@ export default async function ExamsPage() {
       <div>
         <h1 className="font-display text-4xl font-semibold">Mock exams</h1>
         <p className="mt-2 text-muted-foreground">
-          Start or resume a paper. A second in-progress attempt is never created.
+          Read the hall instructions first. The clock starts only after you agree.
+          A second in-progress attempt is never created.
         </p>
       </div>
       {rows.length === 0 ? (
@@ -59,14 +60,16 @@ export default async function ExamsPage() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {exam.subject?.name ?? "General"} · {exam.totalQuestions} Q ·{" "}
-                  {exam.durationMinutes} min · −{exam.negativeMarking}
+                  {exam.durationMinutes} min · +{exam.marksPerQuestion} / −
+                  {exam.negativeMarking} · max {exam.totalQuestions * exam.marksPerQuestion}
                 </p>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 {allowed ? (
                   <StartExamButton
                     examId={exam.id}
-                    label={inProgress ? "Resume exam" : "Start exam"}
+                    resume={Boolean(inProgress)}
+                    label={inProgress ? "Resume exam" : "Read instructions"}
                   />
                 ) : (
                   <BuyButton
@@ -101,7 +104,7 @@ export default async function ExamsPage() {
                     <CardTitle>{attempt.exam.title}</CardTitle>
                     <p className="text-sm text-muted-foreground">
                       Score {attempt.score} · {attempt.correctCount} correct ·{" "}
-                      {attempt.wrongCount} wrong
+                      {attempt.wrongCount} wrong · {attempt.status === "AUTO_SUBMITTED" ? "auto-submitted" : "submitted"}
                     </p>
                   </CardHeader>
                   <CardContent>

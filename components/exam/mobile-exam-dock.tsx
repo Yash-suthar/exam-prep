@@ -17,12 +17,14 @@ import { useExamStore } from "@/lib/exam-store";
 import { cn } from "@/lib/utils";
 
 export function MobileExamDock({
+  attemptId,
   totalQuestions,
   optionsCount,
   onLock,
   confirmBeforeLocking,
   onSubmit,
 }: {
+  attemptId: string;
   totalQuestions: number;
   optionsCount: number;
   onLock: (questionNo: number, option: string) => Promise<{ ok: boolean; error?: string }>;
@@ -80,6 +82,7 @@ export function MobileExamDock({
         {expanded ? (
           <div className="px-4 pb-8">
             <OmrSheet
+              attemptId={attemptId}
               totalQuestions={totalQuestions}
               optionsCount={optionsCount}
               onLock={onLock}

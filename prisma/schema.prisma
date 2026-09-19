@@ -301,12 +301,13 @@ model ExamAttempt {
 }
 
 model ExamAnswer {
-  id             String      @id @default(cuid())
-  attemptId      String
-  attempt        ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionNo     Int
-  selectedOption String?
-  answeredAt     DateTime    @default(now())
+  id              String      @id @default(cuid())
+  attemptId       String
+  attempt         ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionNo      Int
+  selectedOption  String?
+  markedForReview Boolean     @default(false)
+  answeredAt      DateTime    @default(now())
 
   @@unique([attemptId, questionNo])
 }

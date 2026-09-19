@@ -872,7 +872,9 @@ async function main() {
   await seedAttempt(student.id, 18, 10, 18, 10, 6, 4);
   await seedAttempt(student.id, 10, 13, 24, 13, 4, 3);
   await seedAttempt(student.id, 3, 15, 27.5, 15, 3, 2);
+  await seedAttempt(priya.id, 8, 12, 22, 12, 5, 3);
   await seedAttempt(priya.id, 5, 16, 30, 16, 2, 2);
+  await seedAttempt(rohan.id, 6, 8, 14, 8, 7, 5);
 
   const freeBooks = await prisma.book.findMany();
   const freeMaterials = await prisma.studyMaterial.findMany();
@@ -933,7 +935,7 @@ async function main() {
     },
   });
 
-  console.log("Seeded MeritPath v2 demo data.");
+  console.log("Seeded MeritPath hall demo data.");
 }
 
 main()

@@ -41,7 +41,7 @@ type ExamRoomProps = {
   attempt: {
     id: string;
     startedAt: string;
-    answers: { questionNo: number; selectedOption: string | null }[];
+    answers: { questionNo: number; selectedOption: string | null; markedForReview: boolean }[];
   };
   paperUrl: string;
   confirmBeforeLocking: boolean;
@@ -57,10 +57,12 @@ export function ExamRoom({ exam, attempt, paperUrl, confirmBeforeLocking }: Exam
 
   useEffect(() => {
     const mapped: Record<number, string> = {};
+    const marked: Record<number, boolean> = {};
     for (const answer of attempt.answers) {
       if (answer.selectedOption) mapped[answer.questionNo] = answer.selectedOption;
+      if (answer.markedForReview) marked[answer.questionNo] = true;
     }
-    hydrate(mapped);
+    hydrate({ answers: mapped, marked });
   }, [attempt.answers, hydrate]);
 
   const endsAt = useMemo(
@@ -130,6 +132,7 @@ export function ExamRoom({ exam, attempt, paperUrl, confirmBeforeLocking }: Exam
         <aside className="overflow-auto rounded-2xl border border-border bg-card p-4">
           <p className="mb-3 text-sm font-semibold">OMR answer sheet</p>
           <OmrSheet
+            attemptId={attempt.id}
             totalQuestions={exam.totalQuestions}
             optionsCount={exam.optionsCount}
             onLock={onLock}
@@ -143,6 +146,7 @@ export function ExamRoom({ exam, attempt, paperUrl, confirmBeforeLocking }: Exam
           <PdfViewer fileUrl={paperUrl} />
         </div>
         <MobileExamDock
+          attemptId={attempt.id}
           totalQuestions={exam.totalQuestions}
           optionsCount={exam.optionsCount}
           onLock={onLock}
