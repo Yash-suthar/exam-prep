@@ -48,3 +48,18 @@ Payments fall back to instant demo checkout when Razorpay / Stripe keys are empt
 ## GitHub
 
 Repository: https://github.com/Yash-suthar/exam-prep
+
+## Oracle Docker deploy
+
+The app runs on the Oracle VM with Postgres and a Cloudflare quick tunnel.
+
+```bash
+# first-time secrets live in ~/exam-prep/.env on the host
+ssh -i ~/.ssh/oracle-ubuntu.key ubuntu@144.24.117.17
+cd ~/exam-prep
+docker compose up -d --build
+```
+
+Pushing `main` to GitHub deploys automatically (`.github/workflows/deploy-oracle.yml`). The workflow SSHs in, pulls, and rebuilds `app` + `db` so the tunnel URL stays put.
+
+Required GitHub secrets: `ORACLE_HOST`, `ORACLE_USER`, `ORACLE_SSH_KEY`.
