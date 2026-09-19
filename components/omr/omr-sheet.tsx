@@ -1,9 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useState } from "react";
 import { optionLabels } from "@/lib/utils";
-import { useExamStore } from "@/lib/exam-store";
+import { AnswerBubble } from "@/components/exam/answer-bubble";
+import { useAnswerLock } from "@/components/exam/use-answer-lock";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,36 +16,27 @@ export function OmrSheet({
   totalQuestions,
   optionsCount,
   onLock,
+  confirmBeforeLocking,
+  onSubmit,
 }: {
   totalQuestions: number;
   optionsCount: number;
   onLock: (questionNo: number, option: string) => Promise<{ ok: boolean; error?: string }>;
+  confirmBeforeLocking: boolean;
+  onSubmit?: () => void;
 }) {
-  const answers = useExamStore((state) => state.answers);
-  const currentQuestion = useExamStore((state) => state.currentQuestion);
-  const lockLocal = useExamStore((state) => state.lockLocal);
-  const setCurrent = useExamStore((state) => state.setCurrent);
+  const {
+    answers,
+    currentQuestion,
+    setCurrent,
+    pending,
+    setPending,
+    busy,
+    error,
+    requestLock,
+    confirmPending,
+  } = useAnswerLock({ onLock, confirmBeforeLocking });
   const options = optionLabels(optionsCount);
-  const [pending, setPending] = useState<{
-    questionNo: number;
-    option: string;
-  } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function confirm() {
-    if (!pending) return;
-    setBusy(true);
-    setError(null);
-    const result = await onLock(pending.questionNo, pending.option);
-    setBusy(false);
-    if (!result.ok) {
-      setError(result.error ?? "Could not lock this answer.");
-      return;
-    }
-    lockLocal(pending.questionNo, pending.option);
-    setPending(null);
-  }
 
   return (
     <div className="flex h-full flex-col">
@@ -85,58 +75,38 @@ export function OmrSheet({
             >
               <span className="text-sm font-semibold">{questionNo}</span>
               <div className="flex gap-2">
-                {options.map((option) => {
-                  const filled = selected === option;
-                  const locked = Boolean(selected);
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      disabled={locked}
-                      onClick={() => {
-                        setCurrent(questionNo);
-                        setError(null);
-                        setPending({ questionNo, option });
-                      }}
-                      className={cn(
-                        "relative flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold",
-                        filled
-                          ? "border-ink text-white"
-                          : "border-foreground/40 text-foreground",
-                        locked && !filled && "opacity-40",
-                      )}
-                    >
-                      {filled ? (
-                        <motion.span
-                          className="absolute inset-0 rounded-full bg-ink"
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", stiffness: 260, damping: 18 }}
-                        />
-                      ) : null}
-                      <span className="relative z-10">{option}</span>
-                    </button>
-                  );
-                })}
+                {options.map((option) => (
+                  <AnswerBubble
+                    key={option}
+                    option={option}
+                    filled={selected === option}
+                    locked={Boolean(selected)}
+                    onClick={() => requestLock(questionNo, option)}
+                  />
+                ))}
               </div>
             </div>
           );
         })}
       </div>
+      {onSubmit ? (
+        <Button type="button" className="mt-6 w-full" onClick={onSubmit}>
+          Submit exam
+        </Button>
+      ) : null}
 
       <Dialog open={Boolean(pending)} onOpenChange={(open) => !open && setPending(null)}>
         <DialogContent>
           <DialogTitle>Lock this answer?</DialogTitle>
           <DialogDescription>
-            Question {pending?.questionNo}, option {pending?.option}. Once filled,
-            this bubble cannot be changed — just like a real OMR sheet.
+            Lock option {pending?.option} for Question {pending?.questionNo}? This cannot be changed.
           </DialogDescription>
           {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
           <div className="mt-5 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setPending(null)}>
               Cancel
             </Button>
-            <Button type="button" onClick={confirm} disabled={busy}>
+            <Button type="button" onClick={confirmPending} disabled={busy}>
               {busy ? "Locking…" : "Fill and lock"}
             </Button>
           </div>

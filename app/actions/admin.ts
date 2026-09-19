@@ -1,6 +1,6 @@
 "use server";
 
-import { ItemType, Role } from "@prisma/client";
+import { EducationLevel, ItemType, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
@@ -79,6 +79,12 @@ export async function saveNotice(input: {
   applyLink: string;
   examDate?: string | null;
   isPinned: boolean;
+  attachments?: string[];
+  visibleFrom?: string | null;
+  visibleUntil?: string | null;
+  targetEducationLevels?: EducationLevel[];
+  targetStandards?: string[];
+  targetExamGoals?: string[];
 }) {
   await requireAdmin();
   const data = {
@@ -87,6 +93,12 @@ export async function saveNotice(input: {
     applyLink: input.applyLink,
     examDate: input.examDate ? new Date(input.examDate) : null,
     isPinned: input.isPinned,
+    attachments: input.attachments ?? [],
+    visibleFrom: input.visibleFrom ? new Date(input.visibleFrom) : null,
+    visibleUntil: input.visibleUntil ? new Date(input.visibleUntil) : null,
+    targetEducationLevels: input.targetEducationLevels ?? [],
+    targetStandards: input.targetStandards ?? [],
+    targetExamGoals: input.targetExamGoals ?? [],
   };
 
   if (input.id) {
@@ -168,6 +180,39 @@ export async function publishExam(input: {
   revalidatePath("/admin/exams");
   revalidatePath("/exams");
   return { ok: true as const, examId: exam.id };
+}
+
+export async function saveCategoryTemplate(input: {
+  categoryType: ItemType;
+  cardLayout: string;
+  visibleFields: string[];
+  accentColor?: string | null;
+  icon?: string | null;
+}) {
+  await requireAdmin();
+  await prisma.categoryTemplate.upsert({
+    where: { categoryType: input.categoryType },
+    update: {
+      cardLayout: input.cardLayout,
+      visibleFields: input.visibleFields,
+      accentColor: input.accentColor ?? null,
+      icon: input.icon ?? null,
+    },
+    create: {
+      categoryType: input.categoryType,
+      cardLayout: input.cardLayout,
+      visibleFields: input.visibleFields,
+      accentColor: input.accentColor ?? null,
+      icon: input.icon ?? null,
+    },
+  });
+  revalidatePath("/admin/categories");
+  revalidatePath("/books");
+  revalidatePath("/materials");
+  revalidatePath("/papers");
+  revalidatePath("/exams");
+  revalidatePath("/notices");
+  return { ok: true as const };
 }
 
 export async function setUserRole(userId: string, role: Role) {

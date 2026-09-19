@@ -1,6 +1,6 @@
 # MeritPath
 
-Exam-prep platform for timed mocks with a split-screen question paper and a lock-once OMR sheet. First slice covers auth, catalog, demo checkout, library, notices, admin exam builder, and the exam-taking / results flow.
+Exam-prep platform for timed mocks with a split-screen question paper and a lock-once OMR sheet. This slice adds mobile-first onboarding, a Goal page (consistency grid, momentum, focus deck, leaderboard), targeted notices, and recommendation rows.
 
 ## Stack
 
@@ -30,20 +30,24 @@ The app listens on [http://127.0.0.1:43147](http://127.0.0.1:43147).
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Student | student@meritpath.in | MeritPath@Student1 |
+| Student (SSC goal + history) | student@meritpath.in | MeritPath@Student1 |
+| Peer on the same SSC goal | priya@meritpath.in | MeritPath@Student1 |
+| School-track boards | rohan@meritpath.in | MeritPath@Student1 |
 | Admin | admin@meritpath.in | MeritPath@Admin1 |
 
-Payments fall back to instant demo checkout when Razorpay / Stripe keys are empty. Live keys can be added later in `.env`.
+New accounts go through signup → onboarding → goal setup before the home page. Google signup is a demo name/email flow unless real Google OAuth keys are set.
+
+Payments fall back to instant demo checkout when Razorpay / Stripe keys are empty.
 
 ## What this slice includes
 
-- Marketing landing, login, register
-- Role-based routes (`USER` / `ADMIN`) via Auth.js JWT + `proxy.ts`
-- Catalog (books, materials, papers), My Library, notice board, profile / purchase history
-- `hasAccess()` on the server; PDFs served only through short-lived signed URLs
-- Timed exam room: PDF + OMR, confirmation before locking a bubble, auto-submit, server-side negative marking
-- Result + review filters
-- Admin overview, users (grant / suspend), content list, exam builder, notices, analytics
+- Multi-step onboarding (who you are, class, exam tags) and Google continue
+- Home: 1–2 notices, today’s checklist, targeted recommendations
+- Goal page: heatmap, momentum, focus deck, score projection, peer leaderboard
+- Notice board with targeting, schedule, attachments, and a detail page
+- Category templates + My library tab on catalog pages
+- Mobile exam: paper-primary + docked answer bar, expand-to-OMR, lock confirmation toggle
+- Admin notice CRUD and category layout config
 
 ## GitHub
 
@@ -54,12 +58,9 @@ Repository: https://github.com/Yash-suthar/exam-prep
 The app runs on the Oracle VM with Postgres and a Cloudflare quick tunnel.
 
 ```bash
-# first-time secrets live in ~/exam-prep/.env on the host
 ssh -i ~/.ssh/oracle-ubuntu.key ubuntu@144.24.117.17
 cd ~/exam-prep
 docker compose up -d --build
 ```
 
-Pushing `main` to GitHub deploys automatically (`.github/workflows/deploy-oracle.yml`). The workflow SSHs in, pulls, rebuilds `app` + `db`, and starts the tunnel if it is not already running.
-
-Required GitHub secrets: `ORACLE_HOST`, `ORACLE_USER`, `ORACLE_SSH_KEY`.
+Pushing `main` to GitHub deploys automatically (`.github/workflows/deploy-oracle.yml`).

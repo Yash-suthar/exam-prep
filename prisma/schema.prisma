@@ -18,6 +18,7 @@ enum ItemType {
   PAPER
   PLAN
   EXAM
+  NOTICE
 }
 
 enum PaymentStatus {
@@ -33,11 +34,36 @@ enum AttemptStatus {
   AUTO_SUBMITTED
 }
 
+enum EducationLevel {
+  STUDENT
+  GRADUATE
+  POST_GRADUATE
+  WORKING_PROFESSIONAL
+}
+
+enum GoalType {
+  SCHOOL
+  COMPETITIVE_EXAM
+}
+
+enum DayStatus {
+  COMPLETE
+  PARTIAL
+  NONE
+  MISSED_EXAM
+}
+
+enum AccessModel {
+  PAID
+  FREE
+  FREE_TRIAL
+}
+
 model User {
   id           String        @id @default(cuid())
   name         String
   email        String        @unique
-  passwordHash String
+  passwordHash String?
   role         Role          @default(USER)
   suspended    Boolean       @default(false)
   createdAt    DateTime      @default(now())
@@ -45,6 +71,63 @@ model User {
   purchases    Purchase[]
   examAttempts ExamAttempt[]
   auditLogs    AuditLog[]    @relation("AuditActor")
+  profile      UserProfile?
+  settings     UserSettings?
+  goals        Goal[]
+}
+
+model UserProfile {
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  educationLevel  EducationLevel
+  standard        String?
+  examGoals       String[]
+  onboardedAt     DateTime?
+}
+
+model UserSettings {
+  id                   String  @id @default(cuid())
+  userId               String  @unique
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  confirmBeforeLocking Boolean @default(true)
+  theme                String  @default("system")
+}
+
+model Goal {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          GoalType
+  examTag       String?
+  targetPercent Float?
+  targetDate    DateTime?
+  targetRank    Int?
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  tasks         GoalTask[]
+  dailyLogs     DailyLog[]
+}
+
+model GoalTask {
+  id            String  @id @default(cuid())
+  goalId        String
+  goal          Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  label         String
+  isAutoTracked Boolean @default(false)
+  targetMinutes Int?
+}
+
+model DailyLog {
+  id          String    @id @default(cuid())
+  goalId      String
+  goal        Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  date        DateTime
+  status      DayStatus
+  taskResults Json
+  createdAt   DateTime  @default(now())
+
+  @@unique([goalId, date])
 }
 
 model Subject {
@@ -56,50 +139,80 @@ model Subject {
 }
 
 model Book {
-  id         String   @id @default(cuid())
-  title      String
-  subjectId  String
-  subject    Subject  @relation(fields: [subjectId], references: [id])
-  fileUrl    String
-  price      Float
-  isFree     Boolean  @default(false)
-  coverImage String?
-  createdAt  DateTime @default(now())
+  id                     String           @id @default(cuid())
+  title                  String
+  subjectId              String
+  subject                Subject          @relation(fields: [subjectId], references: [id])
+  fileUrl                String
+  price                  Float
+  isFree                 Boolean          @default(false)
+  coverImage             String?
+  createdAt              DateTime         @default(now())
+  targetEducationLevels  EducationLevel[]
+  targetStandards        String[]
+  targetExamGoals        String[]
+  accessModel            AccessModel      @default(PAID)
+  trialDurationDays      Int?
 }
 
 model StudyMaterial {
-  id        String   @id @default(cuid())
-  title     String
-  fileUrl   String
-  price     Float
-  isFree    Boolean  @default(false)
-  tags      String[]
-  createdAt DateTime @default(now())
+  id                     String           @id @default(cuid())
+  title                  String
+  fileUrl                String
+  price                  Float
+  isFree                 Boolean          @default(false)
+  tags                   String[]
+  createdAt              DateTime         @default(now())
+  targetEducationLevels  EducationLevel[]
+  targetStandards        String[]
+  targetExamGoals        String[]
+  accessModel            AccessModel      @default(PAID)
+  trialDurationDays      Int?
 }
 
 model Paper {
-  id        String  @id @default(cuid())
-  title     String
-  subjectId String
-  subject   Subject @relation(fields: [subjectId], references: [id])
-  year      Int?
-  fileUrl   String
-  price     Float
-  isFree    Boolean @default(false)
+  id                     String           @id @default(cuid())
+  title                  String
+  subjectId              String
+  subject                Subject          @relation(fields: [subjectId], references: [id])
+  year                   Int?
+  fileUrl                String
+  price                  Float
+  isFree                 Boolean          @default(false)
+  targetEducationLevels  EducationLevel[]
+  targetStandards        String[]
+  targetExamGoals        String[]
+  accessModel            AccessModel      @default(PAID)
+  trialDurationDays      Int?
 }
 
 model Notice {
-  id          String    @id @default(cuid())
-  title       String
-  description String
-  examDate    DateTime?
-  applyLink   String
-  isPinned    Boolean   @default(false)
-  createdAt   DateTime  @default(now())
+  id                     String           @id @default(cuid())
+  title                  String
+  description            String
+  examDate               DateTime?
+  applyLink              String
+  isPinned               Boolean          @default(false)
+  createdAt              DateTime         @default(now())
+  attachments            String[]
+  visibleFrom            DateTime?
+  visibleUntil           DateTime?
+  targetEducationLevels  EducationLevel[]
+  targetStandards        String[]
+  targetExamGoals        String[]
+}
+
+model CategoryTemplate {
+  id            String   @id @default(cuid())
+  categoryType  ItemType @unique
+  cardLayout    String
+  visibleFields String[]
+  accentColor   String?
+  icon          String?
 }
 
 model Plan {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   name         String
   description  String
   price        Float
@@ -135,22 +248,27 @@ model AccessGrant {
 }
 
 model Exam {
-  id               String         @id @default(cuid())
-  title            String
-  subjectId        String?
-  subject          Subject?       @relation(fields: [subjectId], references: [id])
-  rawPaperFileUrl  String
-  durationMinutes  Int
-  totalQuestions   Int
-  marksPerQuestion Float
-  negativeMarking  Float          @default(0)
-  optionsCount     Int            @default(4)
-  price            Float
-  isFree           Boolean        @default(false)
-  isPublished      Boolean        @default(false)
-  questions        ExamQuestion[]
-  attempts         ExamAttempt[]
-  createdAt        DateTime       @default(now())
+  id                     String           @id @default(cuid())
+  title                  String
+  subjectId              String?
+  subject                Subject?         @relation(fields: [subjectId], references: [id])
+  rawPaperFileUrl        String
+  durationMinutes        Int
+  totalQuestions         Int
+  marksPerQuestion       Float
+  negativeMarking        Float            @default(0)
+  optionsCount           Int              @default(4)
+  price                  Float
+  isFree                 Boolean          @default(false)
+  isPublished            Boolean          @default(false)
+  questions              ExamQuestion[]
+  attempts               ExamAttempt[]
+  createdAt              DateTime         @default(now())
+  targetEducationLevels  EducationLevel[]
+  targetStandards        String[]
+  targetExamGoals        String[]
+  accessModel            AccessModel      @default(PAID)
+  trialDurationDays      Int?
 }
 
 model ExamQuestion {
@@ -159,17 +277,18 @@ model ExamQuestion {
   exam          Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
   questionNo    Int
   correctOption String
+  topic         String?
 
   @@unique([examId, questionNo])
 }
 
 model ExamAttempt {
-  id           String       @id @default(cuid())
+  id           String        @id @default(cuid())
   userId       String
-  user         User         @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
   examId       String
-  exam         Exam         @relation(fields: [examId], references: [id])
-  startedAt    DateTime     @default(now())
+  exam         Exam          @relation(fields: [examId], references: [id])
+  startedAt    DateTime      @default(now())
   submittedAt  DateTime?
   score        Float?
   correctCount Int?
@@ -193,15 +312,15 @@ model ExamAnswer {
 }
 
 model AuditLog {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   actorId      String
-  actor        User     @relation("AuditActor", fields: [actorId], references: [id])
+  actor        User      @relation("AuditActor", fields: [actorId], references: [id])
   action       String
   itemType     ItemType?
   itemId       String?
   targetUserId String?
   metadata     Json?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   @@index([createdAt])
 }

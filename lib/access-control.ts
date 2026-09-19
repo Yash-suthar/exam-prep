@@ -10,21 +10,21 @@ export async function hasAccess(
 
   if (itemType === "BOOK") {
     const book = await prisma.book.findUnique({ where: { id: itemId } });
-    if (book?.isFree) return true;
+    if (book?.isFree || book?.accessModel === "FREE") return true;
   }
   if (itemType === "MATERIAL") {
     const material = await prisma.studyMaterial.findUnique({
       where: { id: itemId },
     });
-    if (material?.isFree) return true;
+    if (material?.isFree || material?.accessModel === "FREE") return true;
   }
   if (itemType === "PAPER") {
     const paper = await prisma.paper.findUnique({ where: { id: itemId } });
-    if (paper?.isFree) return true;
+    if (paper?.isFree || paper?.accessModel === "FREE") return true;
   }
   if (itemType === "EXAM") {
     const exam = await prisma.exam.findUnique({ where: { id: itemId } });
-    if (exam?.isFree) return true;
+    if (exam?.isFree || exam?.accessModel === "FREE") return true;
   }
 
   const purchase = await prisma.purchase.findFirst({

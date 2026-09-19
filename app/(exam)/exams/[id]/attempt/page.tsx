@@ -40,8 +40,12 @@ export default async function AttemptPage({
     itemId: exam.id,
   });
 
+  const settings = await prisma.userSettings.findUnique({
+    where: { userId: session.user.id },
+  });
+
   return (
-    <div className="min-h-full px-3 py-4 md:px-6">
+    <div className="min-h-full px-3 py-3 md:px-6">
       <ExamRoom
         exam={{
           id: exam.id,
@@ -58,6 +62,7 @@ export default async function AttemptPage({
           answers: attempt.answers,
         }}
         paperUrl={signedFilePath(token)}
+        confirmBeforeLocking={settings?.confirmBeforeLocking ?? true}
       />
     </div>
   );

@@ -123,6 +123,7 @@ export async function submitAttempt(attemptId: string, auto = false) {
   revalidatePath(`/exams/${attempt.examId}/result`);
   revalidatePath("/exams");
   revalidatePath("/dashboard");
+  revalidatePath("/goals");
   return { ok: true as const, attemptId };
 }
 
@@ -181,4 +182,7 @@ async function finalizeAttempt(attemptId: string, status: AttemptStatus) {
       unattempted,
     },
   });
+
+  const { markAutoTrackedMock } = await import("@/app/actions/goals");
+  await markAutoTrackedMock(attempt.userId);
 }

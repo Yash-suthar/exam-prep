@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { loginUser } from "@/app/actions/auth";
 import { AuthForm } from "@/components/auth/auth-form";
+import { GoogleAuthForm } from "@/components/auth/google-auth-form";
 import { Logo } from "@/components/layout/logo";
 
 export default async function LoginPage({
@@ -25,6 +26,7 @@ export default async function LoginPage({
           submitLabel="Log in"
           callbackUrl={callbackUrl}
         />
+        <GoogleAuthForm />
         <p className="mt-6 text-sm text-muted-foreground">
           New here?{" "}
           <Link href="/register" className="font-semibold text-primary">

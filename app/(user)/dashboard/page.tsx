@@ -1,130 +1,91 @@
 import Link from "next/link";
-import { AttemptStatus } from "@prisma/client";
-import { StartExamButton } from "@/components/exam/start-exam-button";
+import { RecommendationRow } from "@/components/catalog/recommendation-row";
+import { TodayChecklist } from "@/components/goals/today-checklist";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { hasAccess } from "@/lib/access-control";
-import { prisma } from "@/lib/prisma";
+import { getStudentContext } from "@/lib/audience";
+import { dayStart, formatDay } from "@/lib/dates";
+import { visibleNotices } from "@/lib/notices";
+import { recommendedCatalog } from "@/lib/recommendations";
 import { requireUser } from "@/lib/session";
+import { examLabel } from "@/lib/taxonomy";
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [purchases, attempts, notices, exams] = await Promise.all([
-    prisma.purchase.count({ where: { userId: user.id, status: "SUCCESS" } }),
-    prisma.examAttempt.findMany({
-      where: { userId: user.id, status: { not: AttemptStatus.IN_PROGRESS } },
-      include: { exam: true },
-      orderBy: { submittedAt: "desc" },
-      take: 5,
-    }),
-    prisma.notice.findMany({
-      orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-      take: 3,
-    }),
-    prisma.exam.findMany({
-      where: { isPublished: true },
-      orderBy: { createdAt: "desc" },
-      take: 4,
-    }),
+  const { profile, goal, audience, activeGoalTag } = await getStudentContext(user.id);
+  const [notices, recs] = await Promise.all([
+    visibleNotices(audience, 2),
+    recommendedCatalog(user.id, audience, activeGoalTag, 6),
   ]);
-
-  const scores = attempts
-    .map((attempt) => attempt.score)
-    .filter((score): score is number => score != null);
-  const avg =
-    scores.length === 0
-      ? 0
-      : Math.round((scores.reduce((sum, score) => sum + score, 0) / scores.length) * 10) /
-        10;
-
-  const examCards = await Promise.all(
-    exams.map(async (exam) => ({
-      exam,
-      allowed: await hasAccess(user.id, "EXAM", exam.id),
-    })),
-  );
+  const today = dayStart();
+  const todayLog = goal?.dailyLogs.find((log) => log.date.getTime() === today.getTime());
+  const results = (todayLog?.taskResults as Record<string, boolean> | null) ?? {};
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-16">
       <div>
-        <p className="text-sm font-semibold text-primary">Good to see you, {user.name}</p>
-        <h1 className="mt-1 font-display text-4xl font-semibold">Continue preparing</h1>
+        <p className="text-sm font-semibold text-primary">Good to see you, {(user.name ?? "there").split(" ")[0]}</p>
+        <h1 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">Continue preparing</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {profile?.examGoals?.length
+            ? `Personalised for ${profile.examGoals.map(examLabel).join(", ")}`
+            : "Finish onboarding tags to sharpen recommendations."}
+        </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Stat title="Purchases & grants" value={String(purchases)} />
-        <Stat title="Exams submitted" value={String(attempts.length)} />
-        <Stat title="Average score" value={String(avg)} />
-      </div>
-      <section>
+
+      <section className="max-h-40 overflow-hidden">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-display text-2xl">Recommended mocks</h2>
-          <Link href="/exams" className="text-sm font-semibold text-primary">
-            All exams
+          <h2 className="font-display text-xl">Notices</h2>
+          <Link href="/notices" className="text-sm font-semibold text-primary">
+            Show all →
           </Link>
         </div>
-        {examCards.length === 0 ? (
-          <EmptyState
-            title="No published exams yet"
-            description="An admin can publish a mock from the exam builder."
-          />
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {examCards.map(({ exam, allowed }) => (
-              <Card key={exam.id}>
-                <CardHeader>
-                  <CardTitle>{exam.title}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {exam.totalQuestions} Q · {exam.durationMinutes} min · −
-                    {exam.negativeMarking}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  {allowed ? (
-                    <StartExamButton examId={exam.id} />
-                  ) : (
-                    <Link href="/exams" className="text-sm font-semibold text-primary">
-                      Unlock from catalog
-                    </Link>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
-      <section>
-        <h2 className="mb-3 font-display text-2xl">Upcoming notices</h2>
         {notices.length === 0 ? (
-          <EmptyState
-            title="Notice board is quiet"
-            description="Official dates and apply links will show up here."
-            actionHref="/notices"
-            actionLabel="Open notice board"
-          />
+          <p className="text-sm text-muted-foreground">No notices for your profile right now.</p>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-2">
             {notices.map((notice) => (
-              <Card key={notice.id}>
-                <CardHeader>
-                  <CardTitle>{notice.title}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{notice.description}</p>
-                </CardHeader>
-              </Card>
+              <Link
+                key={notice.id}
+                href={`/notices/${notice.id}`}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{notice.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {notice.examDate ? formatDay(notice.examDate) : formatDay(notice.createdAt)}
+                  </p>
+                </div>
+                {notice.isPinned ? <Badge tone="accent">Pinned</Badge> : null}
+              </Link>
             ))}
           </div>
         )}
       </section>
-    </div>
-  );
-}
 
-function Stat({ title, value }: { title: string; value: string }) {
-  return (
-    <Card>
-      <CardHeader>
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-        <CardTitle className="text-3xl">{value}</CardTitle>
-      </CardHeader>
-    </Card>
+      {goal ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Today on {examLabel(goal.examTag ?? "boards")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TodayChecklist goalId={goal.id} tasks={goal.tasks} results={results} />
+          </CardContent>
+        </Card>
+      ) : (
+        <EmptyState
+          title="Set a goal to unlock today’s list"
+          description="School percentage or a competitive exam — two minutes, then the home page has a checklist."
+          actionHref="/goals/setup"
+          actionLabel="Create a goal"
+        />
+      )}
+
+      <RecommendationRow title="Books" href="/books" items={recs.books} />
+      <RecommendationRow title="Study materials" href="/materials" items={recs.materials} />
+      <RecommendationRow title="Previous papers" href="/papers" items={recs.papers} />
+      <RecommendationRow title="Mocks" href="/exams" items={recs.exams} />
+    </div>
   );
 }

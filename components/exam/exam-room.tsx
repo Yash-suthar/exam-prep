@@ -5,27 +5,28 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { lockAnswer, submitAttempt } from "@/app/actions/exam";
+import { saveConfirmBeforeLocking } from "@/app/actions/settings";
+import { MobileExamDock } from "@/components/exam/mobile-exam-dock";
 import { OmrSheet } from "@/components/omr/omr-sheet";
 import { ExamTimer } from "@/components/exam/exam-timer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const PdfViewer = dynamic(
-  () =>
-    import("@/components/pdf-viewer/pdf-viewer").then((mod) => mod.PdfViewer),
-  {
-    ssr: false,
-    loading: () => <Skeleton className="h-[28rem] w-full rounded-2xl" />,
-  },
-);
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useExamStore } from "@/lib/exam-store";
+
+const PdfViewer = dynamic(
+  () => import("@/components/pdf-viewer/pdf-viewer").then((mod) => mod.PdfViewer),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[28rem] w-full rounded-2xl" />,
+  },
+);
 
 type ExamRoomProps = {
   exam: {
@@ -43,14 +44,16 @@ type ExamRoomProps = {
     answers: { questionNo: number; selectedOption: string | null }[];
   };
   paperUrl: string;
+  confirmBeforeLocking: boolean;
 };
 
-export function ExamRoom({ exam, attempt, paperUrl }: ExamRoomProps) {
+export function ExamRoom({ exam, attempt, paperUrl, confirmBeforeLocking }: ExamRoomProps) {
   const router = useRouter();
   const hydrate = useExamStore((state) => state.hydrate);
   const answers = useExamStore((state) => state.answers);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmLock, setConfirmLock] = useState(confirmBeforeLocking);
 
   useEffect(() => {
     const mapped: Record<number, string> = {};
@@ -98,17 +101,25 @@ export function ExamRoom({ exam, attempt, paperUrl }: ExamRoomProps) {
   const remainingMs = new Date(endsAt).getTime() - Date.now();
 
   return (
-    <div className="flex min-h-[calc(100vh-2rem)] flex-col gap-4">
+    <div className="flex min-h-[calc(100dvh-1rem)] flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-            Live exam
-          </p>
-          <h1 className="font-display text-2xl font-semibold">{exam.title}</h1>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Live exam</p>
+          <h1 className="font-display text-xl font-semibold sm:text-2xl">{exam.title}</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-xs font-semibold">
+            <Switch
+              checked={confirmLock}
+              onCheckedChange={async (value) => {
+                setConfirmLock(value);
+                await saveConfirmBeforeLocking(value);
+              }}
+            />
+            Confirm before locking
+          </label>
           <ExamTimer endsAt={endsAt} onExpire={() => finish(true)} />
-          <Button type="button" onClick={() => setSubmitOpen(true)}>
+          <Button type="button" className="hidden lg:inline-flex" onClick={() => setSubmitOpen(true)}>
             Submit exam
           </Button>
         </div>
@@ -122,33 +133,22 @@ export function ExamRoom({ exam, attempt, paperUrl }: ExamRoomProps) {
             totalQuestions={exam.totalQuestions}
             optionsCount={exam.optionsCount}
             onLock={onLock}
+            confirmBeforeLocking={confirmLock}
           />
         </aside>
       </div>
 
-      <div className="lg:hidden">
-        <Tabs defaultValue="paper">
-          <TabsList className="w-full">
-            <TabsTrigger value="paper" className="flex-1">
-              Paper
-            </TabsTrigger>
-            <TabsTrigger value="omr" className="flex-1">
-              OMR sheet
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="paper">
-            <PdfViewer fileUrl={paperUrl} />
-          </TabsContent>
-          <TabsContent value="omr">
-            <div className="rounded-2xl border border-border bg-card p-4">
-              <OmrSheet
-                totalQuestions={exam.totalQuestions}
-                optionsCount={exam.optionsCount}
-                onLock={onLock}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+      <div className="relative flex min-h-0 flex-1 flex-col lg:hidden">
+        <div className="min-h-[70dvh] flex-1 pb-24">
+          <PdfViewer fileUrl={paperUrl} />
+        </div>
+        <MobileExamDock
+          totalQuestions={exam.totalQuestions}
+          optionsCount={exam.optionsCount}
+          onLock={onLock}
+          confirmBeforeLocking={confirmLock}
+          onSubmit={() => setSubmitOpen(true)}
+        />
       </div>
 
       <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>

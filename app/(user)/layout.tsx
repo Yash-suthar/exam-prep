@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { getInProgressExam } from "@/lib/in-progress";
+import { requireReadyStudent } from "@/lib/onboarding-gate";
 import { requireUser } from "@/lib/session";
 
 export default async function UserLayout({
@@ -8,6 +9,7 @@ export default async function UserLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
+  await requireReadyStudent(user.id, user.role);
   const inProgress = await getInProgressExam(user.id);
 
   return (

@@ -12,6 +12,8 @@ const protectedPrefixes = [
   "/exams",
   "/profile",
   "/admin",
+  "/onboarding",
+  "/goals",
 ];
 
 export async function proxy(request: NextRequest) {

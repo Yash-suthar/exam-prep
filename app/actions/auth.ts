@@ -50,7 +50,7 @@ export async function registerUser(
     await signIn("credentials", {
       email,
       password: parsed.data.password,
-      redirectTo: "/dashboard",
+      redirectTo: "/onboarding",
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -88,4 +88,37 @@ export async function loginUser(
 
 export async function logoutUser() {
   await signOut({ redirectTo: "/" });
+}
+
+const googleLiteSchema = z.object({
+  name: z.string().min(2, "Name is too short"),
+  email: z.string().email("Enter a valid email"),
+});
+
+export async function continueWithGoogle(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const parsed = googleLiteSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Check your Google details." };
+  }
+
+  try {
+    await signIn("google-lite", {
+      email: parsed.data.email,
+      name: parsed.data.name,
+      redirectTo: "/onboarding",
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return { error: "Google sign-in failed. Try email and password." };
+    }
+    throw error;
+  }
+
+  return {};
 }
