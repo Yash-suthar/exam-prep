@@ -19,4 +19,5 @@ if [ ! -f .env ]; then
   exit 1
 fi
 docker compose up -d --build app db
+docker compose up -d tunnel
 EOF

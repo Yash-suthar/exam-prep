@@ -31,3 +31,4 @@ jobs:
             git pull --ff-only origin main
             test -f .env
             docker compose up -d --build app db
+            docker compose up -d tunnel

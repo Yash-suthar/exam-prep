@@ -60,6 +60,6 @@ cd ~/exam-prep
 docker compose up -d --build
 ```
 
-Pushing `main` to GitHub deploys automatically (`.github/workflows/deploy-oracle.yml`). The workflow SSHs in, pulls, and rebuilds `app` + `db` so the tunnel URL stays put.
+Pushing `main` to GitHub deploys automatically (`.github/workflows/deploy-oracle.yml`). The workflow SSHs in, pulls, rebuilds `app` + `db`, and starts the tunnel if it is not already running.
 
 Required GitHub secrets: `ORACLE_HOST`, `ORACLE_USER`, `ORACLE_SSH_KEY`.
