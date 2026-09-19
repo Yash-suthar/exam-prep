@@ -63,7 +63,9 @@ export function ConsistencyGrid({
         <Legend swatch="bg-emerald-500" label="All tasks" />
         <Legend swatch="bg-amber-400" label="Partial" />
         <Legend swatch="bg-muted" label="Nothing logged" />
-        <Legend swatch="bg-muted ring-2 ring-red-500" label="Missed mock" />
+        {logs.some((log) => log.status === "MISSED_EXAM") ? (
+          <Legend swatch="bg-muted ring-2 ring-red-500" label="Missed mock" />
+        ) : null}
       </div>
 
       {picked ? (

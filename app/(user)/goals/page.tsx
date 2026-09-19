@@ -119,10 +119,27 @@ export default async function GoalTodayPage() {
               percent={week.mockPercent}
               unit=""
             />
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <MiniStat label="Days logged" value={`${week.daysLogged}/7`} />
+              <MiniStat label="Streak" value={`${streak}d`} />
+              <MiniStat
+                label="Rest days"
+                value={
+                  goal.restDays.length
+                    ? goal.restDays
+                        .map((day) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day])
+                        .join(", ")
+                    : "None"
+                }
+              />
+            </div>
             <p className="text-xs text-muted-foreground">
               {pace
                 ? `To finish the syllabus by your exam date: ${pace}.`
                 : "Set an exam date in Settings to see a required pace."}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {coverage.total - coverage.mastered} of {coverage.total} topics still to master.
             </p>
           </CardContent>
         </Card>
@@ -193,6 +210,17 @@ export default async function GoalTodayPage() {
           />
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-muted/60 px-2.5 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-0.5 truncate text-sm font-semibold">{value}</p>
     </div>
   );
 }
