@@ -1,6 +1,5 @@
 "use client";
 
-import { EducationLevel } from "@prisma/client";
 import { useState } from "react";
 import { toast } from "sonner";
 import { deleteNotice, saveNotice } from "@/app/actions/admin";
@@ -175,38 +174,4 @@ export function NoticeForm({ initial }: { initial?: NoticeDraft }) {
       </div>
     </form>
   );
-}
-
-export function noticeToDraft(notice: {
-  id: string;
-  title: string;
-  description: string;
-  applyLink: string;
-  examDate: Date | null;
-  isPinned: boolean;
-  attachments: string[];
-  visibleFrom: Date | null;
-  visibleUntil: Date | null;
-  targetEducationLevels: EducationLevel[];
-  targetStandards: string[];
-  targetExamGoals: string[];
-}): NoticeDraft {
-  const toLocal = (date: Date | null) =>
-    date ? new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16) : "";
-  return {
-    id: notice.id,
-    title: notice.title,
-    description: notice.description,
-    applyLink: notice.applyLink,
-    examDate: notice.examDate ? notice.examDate.toISOString().slice(0, 10) : "",
-    isPinned: notice.isPinned,
-    attachments: notice.attachments,
-    visibleFrom: toLocal(notice.visibleFrom),
-    visibleUntil: toLocal(notice.visibleUntil),
-    targeting: {
-      targetEducationLevels: notice.targetEducationLevels,
-      targetStandards: notice.targetStandards,
-      targetExamGoals: notice.targetExamGoals,
-    },
-  };
 }

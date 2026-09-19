@@ -1,4 +1,5 @@
-import { NoticeForm, noticeToDraft } from "@/components/admin/notice-form";
+import { NoticeForm } from "@/components/admin/notice-form";
+import { noticeToDraft } from "@/lib/notices";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
