@@ -58,7 +58,7 @@ export async function GET(
 
   const absolute = path.isAbsolute(stored)
     ? stored
-    : path.join(process.cwd(), stored);
+    : path.join(/* turbopackIgnore: true */ process.cwd(), "uploads", path.basename(stored));
 
   try {
     const bytes = await readFile(absolute);

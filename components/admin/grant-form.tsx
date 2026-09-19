@@ -84,8 +84,8 @@ export function GrantForm({
             setBusy(true);
             const result = await grantAccess({ userId, itemType, itemId });
             setBusy(false);
-            if (!result.ok) toast.error(result.error);
-            else toast.success("Access granted.");
+            if (result.ok) toast.success("Access granted.");
+            else toast.error("Could not grant access.");
           }}
         >
           Grant access
