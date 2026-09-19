@@ -323,6 +323,7 @@ model Exam {
   marksPerQuestion       Float
   negativeMarking        Float            @default(0)
   optionsCount           Int              @default(4)
+  skipOptionEnabled      Boolean          @default(false)
   price                  Float
   isFree                 Boolean          @default(false)
   isPublished            Boolean          @default(false)

@@ -1,6 +1,6 @@
 "use client";
 
-import { optionLabels } from "@/lib/utils";
+import { optionLabelsFor, skipOptionLabel } from "@/lib/marking";
 import { AnswerBubble } from "@/components/exam/answer-bubble";
 import { MarkReviewButton } from "@/components/exam/mark-review-button";
 import { QuestionPalette } from "@/components/exam/question-palette";
@@ -18,6 +18,7 @@ export function OmrSheet({
   attemptId,
   totalQuestions,
   optionsCount,
+  skipOptionEnabled = false,
   onLock,
   confirmBeforeLocking,
   onSubmit,
@@ -25,6 +26,7 @@ export function OmrSheet({
   attemptId: string;
   totalQuestions: number;
   optionsCount: number;
+  skipOptionEnabled?: boolean;
   onLock: (questionNo: number, option: string) => Promise<{ ok: boolean; error?: string }>;
   confirmBeforeLocking: boolean;
   onSubmit?: () => void;
@@ -40,7 +42,8 @@ export function OmrSheet({
     requestLock,
     confirmPending,
   } = useAnswerLock({ onLock, confirmBeforeLocking });
-  const options = optionLabels(optionsCount);
+  const options = optionLabelsFor(optionsCount);
+  const skip = skipOptionLabel(optionsCount, skipOptionEnabled);
 
   return (
     <div className="flex h-full flex-col">
@@ -70,6 +73,7 @@ export function OmrSheet({
                   <AnswerBubble
                     key={option}
                     option={option}
+                    variant={option === skip ? "skip" : "answer"}
                     filled={selected === option}
                     locked={Boolean(selected)}
                     onClick={() => requestLock(questionNo, option)}
@@ -80,6 +84,13 @@ export function OmrSheet({
           );
         })}
       </div>
+      {skip ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Bubble {skip} is the “not attempted” mark. It locks the question, scores zero,
+          and never costs you negative marks.
+        </p>
+      ) : null}
+
       {onSubmit ? (
         <Button type="button" className="mt-6 w-full" onClick={onSubmit}>
           Submit exam
@@ -88,9 +99,13 @@ export function OmrSheet({
 
       <Dialog open={Boolean(pending)} onOpenChange={(open) => !open && setPending(null)}>
         <DialogContent>
-          <DialogTitle>Lock this answer?</DialogTitle>
+          <DialogTitle>
+            {pending?.option === skip ? "Mark as not attempted?" : "Lock this answer?"}
+          </DialogTitle>
           <DialogDescription>
-            Lock option {pending?.option} for Question {pending?.questionNo}? This cannot be changed.
+            {pending?.option === skip
+              ? `Question ${pending?.questionNo} will be recorded as not attempted. It scores zero with no negative marking, and cannot be changed.`
+              : `Lock option ${pending?.option} for Question ${pending?.questionNo}? This cannot be changed.`}
           </DialogDescription>
           {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
           <div className="mt-5 flex justify-end gap-2">

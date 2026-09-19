@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { hasAccess } from "@/lib/access-control";
+import { markingSummary } from "@/lib/marking";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -59,9 +60,8 @@ export default async function ExamsPage() {
                   {exam.isFree ? <Badge tone="success">Free</Badge> : <Badge>Paid</Badge>}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {exam.subject?.name ?? "General"} · {exam.totalQuestions} Q ·{" "}
-                  {exam.durationMinutes} min · +{exam.marksPerQuestion} / −
-                  {exam.negativeMarking} · max {exam.totalQuestions * exam.marksPerQuestion}
+                  {exam.subject?.name ?? "General"} · {exam.durationMinutes} min ·{" "}
+                  {markingSummary(exam)}
                 </p>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">

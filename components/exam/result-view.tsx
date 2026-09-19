@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 type ReviewRow = {
   questionNo: number;
   selected: string | null;
+  declaredSkip?: boolean;
   correct: string;
   topic: string | null;
 };
@@ -30,6 +31,7 @@ export function ResultView({
   percentile,
   review,
   topics,
+  marking,
 }: {
   examTitle: string;
   examId: string;
@@ -45,6 +47,7 @@ export function ResultView({
   percentile: number;
   review: ReviewRow[];
   topics: TopicRow[];
+  marking: string;
 }) {
   const [filter, setFilter] = useState<"all" | "wrong" | "unattempted">("all");
   const percent = maxScore === 0 ? 0 : Math.max(0, Math.round((score / maxScore) * 100));
@@ -108,6 +111,7 @@ export function ResultView({
             Scorecard
           </p>
           <h1 className="font-display text-3xl font-semibold">{examTitle}</h1>
+          <p className="text-sm text-muted-foreground">{marking}</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Stat label="Correct" value={correctCount} tone="success" />
             <Stat label="Wrong" value={wrongCount} tone="warning" />
@@ -175,11 +179,13 @@ export function ResultView({
             </p>
           ) : (
             rows.map((row) => {
-              const status = !row.selected
-                ? "skipped"
-                : row.selected === row.correct
-                  ? "correct"
-                  : "wrong";
+              const status = row.declaredSkip
+                ? "not attempted"
+                : !row.selected
+                  ? "skipped"
+                  : row.selected === row.correct
+                    ? "correct"
+                    : "wrong";
               return (
                 <div
                   key={row.questionNo}
@@ -201,6 +207,11 @@ export function ResultView({
                           : status === "wrong"
                             ? "warning"
                             : "locked"
+                      }
+                      title={
+                        status === "not attempted"
+                          ? "You marked the not-attempted bubble — no negative marking"
+                          : undefined
                       }
                     >
                       {status}

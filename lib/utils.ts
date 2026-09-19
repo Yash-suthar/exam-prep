@@ -13,9 +13,7 @@ export function formatInr(amount: number) {
   }).format(amount);
 }
 
-export function optionLabels(count: number) {
-  return ["A", "B", "C", "D", "E"].slice(0, count);
-}
+export { optionLabelsFor as optionLabels } from "@/lib/marking";
 
 export function itemTypeLabel(type: string) {
   switch (type) {

@@ -3,12 +3,11 @@
 import { AttemptStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { hasAccess } from "@/lib/access-control";
+import { isSkipOption, optionLabelsFor } from "@/lib/marking";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { computeExamScore } from "@/lib/scoring";
 import { requireUser } from "@/lib/session";
-
-const OPTIONS = new Set(["A", "B", "C", "D", "E"]);
 
 export async function startOrResumeAttempt(examId: string) {
   const user = await requireUser();
@@ -59,10 +58,6 @@ export async function lockAnswer(input: {
     return { ok: false as const, error: "You are answering too quickly. Wait a moment." };
   }
 
-  if (!OPTIONS.has(input.selectedOption)) {
-    return { ok: false as const, error: "Invalid option." };
-  }
-
   const attempt = await prisma.examAttempt.findUnique({
     where: { id: input.attemptId },
     include: { exam: true },
@@ -70,6 +65,9 @@ export async function lockAnswer(input: {
 
   if (!attempt || attempt.userId !== user.id) {
     return { ok: false as const, error: "Attempt not found." };
+  }
+  if (!optionLabelsFor(attempt.exam.optionsCount).includes(input.selectedOption)) {
+    return { ok: false as const, error: "That option is not on this paper." };
   }
   if (attempt.status !== AttemptStatus.IN_PROGRESS) {
     return { ok: false as const, error: "This attempt is already submitted." };
@@ -219,7 +217,12 @@ async function finalizeAttempt(attemptId: string, status: AttemptStatus) {
 
   for (let questionNo = 1; questionNo <= attempt.exam.totalQuestions; questionNo += 1) {
     const selected = chosen.get(questionNo);
-    if (!selected) {
+    const skipped = isSkipOption(
+      selected,
+      attempt.exam.optionsCount,
+      attempt.exam.skipOptionEnabled,
+    );
+    if (!selected || skipped) {
       unattempted += 1;
       continue;
     }

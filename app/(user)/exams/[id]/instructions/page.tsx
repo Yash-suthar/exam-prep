@@ -4,6 +4,7 @@ import { StartPaperButton } from "@/components/exam/start-paper-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasAccess } from "@/lib/access-control";
+import { markingSummary, optionLabelsFor, skipOptionLabel } from "@/lib/marking";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -32,6 +33,7 @@ export default async function InstructionsPage({
   });
 
   const maxScore = exam.totalQuestions * exam.marksPerQuestion;
+  const skip = skipOptionLabel(exam.optionsCount, exam.skipOptionEnabled);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-16">
@@ -46,13 +48,17 @@ export default async function InstructionsPage({
           {exam.subject?.name ?? "General"} · Read this the way you would on
           the NTA / SSC screen. The clock starts only after you enter the paper.
         </p>
+        <p className="mt-2 text-sm font-medium">{markingSummary(exam)}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
         <Stat label="Questions" value={String(exam.totalQuestions)} />
         <Stat label="Duration" value={`${exam.durationMinutes} min`} />
         <Stat label="Max marks" value={String(maxScore)} />
-        <Stat label="Negative" value={`−${exam.negativeMarking}`} />
+        <Stat
+          label="Negative"
+          value={exam.negativeMarking > 0 ? `−${exam.negativeMarking}` : "None"}
+        />
       </div>
 
       <Card>
@@ -67,12 +73,33 @@ export default async function InstructionsPage({
           <ol className="list-decimal space-y-2 pl-5">
             <li>Read the question paper PDF on the left (or full-screen on a phone).</li>
             <li>
-              Fill one bubble per question. Marks per correct answer:{" "}
-              <strong className="text-foreground">{exam.marksPerQuestion}</strong>.
-              Wrong answer deducts{" "}
-              <strong className="text-foreground">{exam.negativeMarking}</strong>.
+              Each question has{" "}
+              <strong className="text-foreground">
+                {exam.optionsCount} option{exam.optionsCount > 1 ? "s" : ""} (
+                {optionLabelsFor(exam.optionsCount).join(", ")})
+              </strong>
+              . Marks per correct answer:{" "}
+              <strong className="text-foreground">{exam.marksPerQuestion}</strong>.{" "}
+              {exam.negativeMarking > 0 ? (
+                <>
+                  A wrong answer deducts{" "}
+                  <strong className="text-foreground">{exam.negativeMarking}</strong>.
+                </>
+              ) : (
+                <strong className="text-foreground">
+                  There is no negative marking on this paper.
+                </strong>
+              )}{" "}
               Unanswered questions score 0.
             </li>
+            {skip ? (
+              <li>
+                Bubble <strong className="text-foreground">{skip}</strong> means{" "}
+                <strong className="text-foreground">not attempted</strong>. Use it to
+                declare a skip: it locks the question, scores zero, and never attracts
+                negative marking.
+              </li>
+            ) : null}
             <li>
               Use <strong className="text-foreground">Mark for review</strong> if
               you want to come back. Marking does not lock an answer.

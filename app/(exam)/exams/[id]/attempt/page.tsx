@@ -52,6 +52,7 @@ export default async function AttemptPage({
           title: exam.title,
           totalQuestions: exam.totalQuestions,
           optionsCount: exam.optionsCount,
+          skipOptionEnabled: exam.skipOptionEnabled,
           durationMinutes: exam.durationMinutes,
           marksPerQuestion: exam.marksPerQuestion,
           negativeMarking: exam.negativeMarking,

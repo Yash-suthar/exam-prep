@@ -34,6 +34,7 @@ type ExamRoomProps = {
     title: string;
     totalQuestions: number;
     optionsCount: number;
+    skipOptionEnabled: boolean;
     durationMinutes: number;
     marksPerQuestion: number;
     negativeMarking: number;
@@ -135,6 +136,7 @@ export function ExamRoom({ exam, attempt, paperUrl, confirmBeforeLocking }: Exam
             attemptId={attempt.id}
             totalQuestions={exam.totalQuestions}
             optionsCount={exam.optionsCount}
+            skipOptionEnabled={exam.skipOptionEnabled}
             onLock={onLock}
             confirmBeforeLocking={confirmLock}
           />
@@ -149,6 +151,7 @@ export function ExamRoom({ exam, attempt, paperUrl, confirmBeforeLocking }: Exam
           attemptId={attempt.id}
           totalQuestions={exam.totalQuestions}
           optionsCount={exam.optionsCount}
+          skipOptionEnabled={exam.skipOptionEnabled}
           onLock={onLock}
           confirmBeforeLocking={confirmLock}
           onSubmit={() => setSubmitOpen(true)}
@@ -160,8 +163,10 @@ export function ExamRoom({ exam, attempt, paperUrl, confirmBeforeLocking }: Exam
           <DialogTitle>Submit this paper?</DialogTitle>
           <DialogDescription>
             Answered {answeredCount} · Unanswered {unansweredCount} · Time left{" "}
-            {Math.max(0, Math.ceil(remainingMs / 60000))} min. Negative marking is{" "}
-            {exam.negativeMarking} per wrong answer.
+            {Math.max(0, Math.ceil(remainingMs / 60000))} min.{" "}
+            {exam.negativeMarking > 0
+              ? `Negative marking is ${exam.negativeMarking} per wrong answer.`
+              : "This paper has no negative marking."}
           </DialogDescription>
           <div className="mt-5 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setSubmitOpen(false)}>
