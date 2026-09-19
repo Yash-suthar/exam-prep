@@ -792,6 +792,61 @@ async function main() {
     })),
   });
 
+  // Newer SSC-style paper: five bubbles where E declares "not attempted",
+  // and nothing is deducted for a wrong answer.
+  await prisma.exam.create({
+    data: {
+      title: "SSC Tier-1 (new pattern) — E marks a skip, no negative",
+      subjectId: gs.id,
+      rawPaperFileUrl: paperRel,
+      durationMinutes: 15,
+      totalQuestions: 20,
+      marksPerQuestion: 2,
+      negativeMarking: 0,
+      optionsCount: 5,
+      skipOptionEnabled: true,
+      price: 0,
+      isFree: true,
+      isPublished: true,
+      accessModel: "FREE",
+      ...targeting.ssc,
+      questions: {
+        create: ANSWER_KEY.map((correctOption, index) => ({
+          questionNo: index + 1,
+          correctOption,
+          topic: TOPICS[index],
+        })),
+      },
+    },
+  });
+
+  // Short true/false drill to show a two-option paper.
+  await prisma.exam.create({
+    data: {
+      title: "Polity true or false — 10 statements",
+      subjectId: gs.id,
+      rawPaperFileUrl: paperRel,
+      durationMinutes: 8,
+      totalQuestions: 10,
+      marksPerQuestion: 1,
+      negativeMarking: 0.25,
+      optionsCount: 2,
+      skipOptionEnabled: false,
+      price: 0,
+      isFree: true,
+      isPublished: true,
+      accessModel: "FREE",
+      ...targeting.ssc,
+      questions: {
+        create: Array.from({ length: 10 }, (_, index) => ({
+          questionNo: index + 1,
+          correctOption: index % 2 === 0 ? "A" : "B",
+          topic: "Indian polity",
+        })),
+      },
+    },
+  });
+
   const yashGoal = await prisma.goal.create({
     data: {
       userId: student.id,

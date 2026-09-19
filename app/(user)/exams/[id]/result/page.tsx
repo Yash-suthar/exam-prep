@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ResultView } from "@/components/exam/result-view";
 import { accuracyPercent, topicBreakdown } from "@/lib/analysis";
+import { isSkipOption, markingSummary } from "@/lib/marking";
 import { formatDuration, rankAndPercentile } from "@/lib/rank";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -43,12 +44,21 @@ export default async function ResultPage({
   const review = attempt.exam.questions
     .slice()
     .sort((a, b) => a.questionNo - b.questionNo)
-    .map((question) => ({
-      questionNo: question.questionNo,
-      selected: chosen.get(question.questionNo) ?? null,
-      correct: question.correctOption,
-      topic: question.topic,
-    }));
+    .map((question) => {
+      const picked = chosen.get(question.questionNo) ?? null;
+      const declaredSkip = isSkipOption(
+        picked,
+        attempt.exam.optionsCount,
+        attempt.exam.skipOptionEnabled,
+      );
+      return {
+        questionNo: question.questionNo,
+        selected: declaredSkip ? null : picked,
+        declaredSkip,
+        correct: question.correctOption,
+        topic: question.topic,
+      };
+    });
 
   return (
     <ResultView
@@ -69,6 +79,7 @@ export default async function ResultPage({
       percentile={standing.percentile}
       review={review}
       topics={topicBreakdown(review)}
+      marking={markingSummary(attempt.exam)}
     />
   );
 }

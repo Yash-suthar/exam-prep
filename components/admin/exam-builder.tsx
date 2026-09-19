@@ -11,7 +11,13 @@ import { TargetingFields, type TargetingValue } from "@/components/admin/targeti
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { optionLabels } from "@/lib/utils";
+import {
+  NEGATIVE_PRESETS,
+  answerableOptions,
+  markingSummary,
+  optionLabelsFor,
+} from "@/lib/marking";
+import { cn } from "@/lib/utils";
 
 type Subject = { id: string; name: string };
 
@@ -28,6 +34,7 @@ type ExamDraft = {
   negativeMarking: number;
   rawPaperFileUrl: string;
   isPublished: boolean;
+  skipOptionEnabled: boolean;
   answerKey: string[];
   topics: (string | null)[];
   accessModel: AccessModel;
@@ -62,6 +69,7 @@ export function ExamBuilder({
   const [trialDays, setTrialDays] = useState(String(initial?.trialDurationDays ?? 7));
   const [totalQuestions, setTotalQuestions] = useState(initial?.totalQuestions ?? 20);
   const [optionsCount, setOptionsCount] = useState(initial?.optionsCount ?? 4);
+  const [skipOption, setSkipOption] = useState(initial?.skipOptionEnabled ?? false);
   const [marksPerQuestion, setMarksPerQuestion] = useState(initial?.marksPerQuestion ?? 2);
   const [negativeMarking, setNegativeMarking] = useState(initial?.negativeMarking ?? 0.5);
   const [answerKey, setAnswerKey] = useState<string[]>(
@@ -79,14 +87,17 @@ export function ExamBuilder({
   });
   const [busy, setBusy] = useState(false);
 
-  const options = useMemo(() => optionLabels(optionsCount), [optionsCount]);
+  const options = useMemo(
+    () => answerableOptions(optionsCount, skipOption),
+    [optionsCount, skipOption],
+  );
   const isFree = accessModel === "FREE";
 
   function resizeKey(count: number) {
     const size = Math.max(1, Math.min(300, count));
     setTotalQuestions(size);
     setAnswerKey((current) =>
-      Array.from({ length: size }, (_, index) => current[index] ?? "A"),
+      Array.from({ length: size }, (_, index) => current[index] ?? options[0] ?? "A"),
     );
     setTopics((current) => Array.from({ length: size }, (_, index) => current[index] ?? ""));
   }
@@ -94,16 +105,13 @@ export function ExamBuilder({
   function applyBulkKey() {
     const letters = bulkKey
       .toUpperCase()
-      .split(/[^A-E]+/)
-      .join("")
-      .split("");
+      .split("")
+      .filter((character) => options.includes(character));
     if (letters.length === 0) {
-      toast.error("Paste a key like ABCDA or A,B,C,D.");
+      toast.error(`Paste a key using ${options.join(", ")} — for example ${options.join("")}.`);
       return;
     }
-    setAnswerKey((current) =>
-      current.map((value, index) => letters[index] ?? value),
-    );
+    setAnswerKey((current) => current.map((value, index) => letters[index] ?? value));
     toast.success(`${Math.min(letters.length, totalQuestions)} answers filled.`);
   }
 
@@ -123,6 +131,7 @@ export function ExamBuilder({
       marksPerQuestion,
       negativeMarking,
       optionsCount,
+      skipOptionEnabled: skipOption,
       price: isFree ? 0 : price,
       isFree,
       rawPaperFileUrl: paperUrl,
@@ -211,44 +220,138 @@ export function ExamBuilder({
       ) : null}
 
       {step === 2 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Total questions">
-            <Input
-              type="number"
-              value={totalQuestions}
-              onChange={(event) => resizeKey(Number(event.target.value))}
-            />
-          </Field>
-          <Field label="Options">
-            <select
-              className="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm"
-              value={optionsCount}
-              onChange={(event) => setOptionsCount(Number(event.target.value))}
-            >
-              <option value={4}>A–D</option>
-              <option value={5}>A–E</option>
-            </select>
-          </Field>
-          <Field label="Marks per question">
-            <Input
-              type="number"
-              step="0.25"
-              value={marksPerQuestion}
-              onChange={(event) => setMarksPerQuestion(Number(event.target.value))}
-            />
-          </Field>
-          <Field label="Negative marking">
-            <Input
-              type="number"
-              step="0.25"
-              value={negativeMarking}
-              onChange={(event) => setNegativeMarking(Number(event.target.value))}
-            />
-          </Field>
-          <p className="text-sm text-muted-foreground md:col-span-2">
-            Maximum marks: {totalQuestions * marksPerQuestion}. A wrong answer costs{" "}
-            {negativeMarking}, an unanswered question costs nothing.
-          </p>
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Total questions">
+              <Input
+                type="number"
+                min={1}
+                value={totalQuestions}
+                onChange={(event) => resizeKey(Number(event.target.value))}
+              />
+            </Field>
+            <Field label="Marks per correct answer">
+              <Input
+                type="number"
+                step="0.25"
+                min={0.25}
+                value={marksPerQuestion}
+                onChange={(event) => setMarksPerQuestion(Number(event.target.value))}
+              />
+            </Field>
+          </div>
+
+          <div>
+            <Label>Options per question</Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Anything from a single box to A–E. Government papers vary by tier.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[1, 2, 3, 4, 5].map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => {
+                    setOptionsCount(count);
+                    if (count < 2) setSkipOption(false);
+                    const allowed = answerableOptions(count, count >= 2 && skipOption);
+                    setAnswerKey((current) =>
+                      current.map((value) => (allowed.includes(value) ? value : allowed[0] ?? "A")),
+                    );
+                  }}
+                  className={cn(
+                    "min-h-11 rounded-full px-4 text-sm font-semibold",
+                    optionsCount === count
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {count} · {optionLabelsFor(count).join("")}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label>Negative marking</Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pick a common scheme or type any value. Zero means no deduction.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {NEGATIVE_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  title={preset.hint}
+                  onClick={() => setNegativeMarking(preset.value)}
+                  className={cn(
+                    "min-h-11 rounded-full px-4 text-sm font-semibold",
+                    negativeMarking === preset.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {preset.label}
+                </button>
+              ))}
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                value={negativeMarking}
+                onChange={(event) =>
+                  setNegativeMarking(Math.max(0, Number(event.target.value) || 0))
+                }
+                className="w-32"
+                aria-label="Custom negative marking"
+              />
+            </div>
+          </div>
+
+          {optionsCount >= 2 ? (
+            <label className="flex items-start gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 accent-primary"
+                checked={skipOption}
+                onChange={(event) => {
+                  const on = event.target.checked;
+                  setSkipOption(on);
+                  const allowed = answerableOptions(optionsCount, on);
+                  setAnswerKey((current) =>
+                    current.map((value) => (allowed.includes(value) ? value : allowed[0] ?? "A")),
+                  );
+                }}
+              />
+              <span>
+                <span className="block text-sm font-semibold">
+                  Last option ({optionLabelsFor(optionsCount).at(-1)}) means “not attempted”
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  The student can lock {optionLabelsFor(optionsCount).at(-1)} to declare a skip. It
+                  scores zero and never attracts negative marking, so the answer key only uses{" "}
+                  {answerableOptions(optionsCount, true).join(", ")}.
+                </span>
+              </span>
+            </label>
+          ) : null}
+
+          <div className="rounded-2xl bg-muted/60 px-4 py-3 text-sm">
+            <p className="font-semibold">
+              {markingSummary({
+                totalQuestions,
+                marksPerQuestion,
+                negativeMarking,
+                optionsCount,
+                skipOptionEnabled: skipOption,
+              })}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {negativeMarking > 0
+                ? `A wrong answer costs ${negativeMarking}. Leaving a question blank costs nothing.`
+                : "Nothing is deducted for a wrong answer on this paper."}
+            </p>
+          </div>
         </div>
       ) : null}
 
@@ -260,7 +363,7 @@ export function ExamBuilder({
               <Input
                 value={bulkKey}
                 onChange={(event) => setBulkKey(event.target.value)}
-                placeholder="BCADB ACDBA …"
+                placeholder={`${options.join("")} …`}
                 className="flex-1"
               />
               <Button type="button" variant="outline" onClick={applyBulkKey}>
@@ -268,8 +371,11 @@ export function ExamBuilder({
               </Button>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Topic per question is optional but powers the student topic analysis and
-              weak-area drills.
+              Valid answers on this paper: {options.join(", ")}.
+              {skipOption
+                ? ` ${optionLabelsFor(optionsCount).at(-1)} is the "not attempted" bubble, so it is never a correct answer.`
+                : ""}{" "}
+              Topic per question is optional but powers topic analysis and weak-area drills.
             </p>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -349,12 +455,17 @@ export function ExamBuilder({
       {step === 5 ? (
         <div className="space-y-3 rounded-2xl border border-border bg-card p-5 text-sm">
           <p>
-            <strong>{title || "Untitled exam"}</strong> · {totalQuestions} questions ·{" "}
-            {durationMinutes} min · {isFree ? "Free" : `₹${price}`}
+            <strong>{title || "Untitled exam"}</strong> · {durationMinutes} min ·{" "}
+            {isFree ? "Free" : `₹${price}`}
           </p>
           <p className="text-muted-foreground">
-            +{marksPerQuestion} correct / −{negativeMarking} wrong · options{" "}
-            {options.join(", ")} · max {totalQuestions * marksPerQuestion}
+            {markingSummary({
+              totalQuestions,
+              marksPerQuestion,
+              negativeMarking,
+              optionsCount,
+              skipOptionEnabled: skipOption,
+            })}
           </p>
           <p className="text-muted-foreground">
             Paper: {paperUrl || "not uploaded yet"}

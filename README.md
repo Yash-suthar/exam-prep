@@ -24,7 +24,7 @@ npm run db:setup
 npm run dev
 ```
 
-With the dev server running, `npm run e2e` drives a real browser through signup, onboarding, goal setup, the study timer, the syllabus board, the admin exam builder, the mobile exam hall, and password reset.
+With the dev server running, `npm run e2e` drives a real browser through signup, onboarding, goal setup, the study timer, the syllabus board, the admin exam builder, the mobile exam hall, and password reset. `npm run check:marking` verifies the option and negative-marking rules without a browser.
 
 The app listens on [http://127.0.0.1:43147](http://127.0.0.1:43147).
 
@@ -70,6 +70,17 @@ Nothing here needs another screen finished first.
 - Upload PDFs by drag-and-drop anywhere a file is needed (books, materials, papers, exam papers, notice attachments)
 - Add a subject inline from any form that asks for one
 - Exam builder in five steps: paper, marking, answer key (paste the whole key at once, tag topics), audience targeting, publish or save as draft
+
+### Marking schemes
+
+Every paper sets its own rules, so one platform covers SSC, banking, boards, JEE, NEET, and school tests.
+
+- **Options per question: 1 to 5.** A single box, true/false, A–C, A–D, or A–E.
+- **Negative marking: any value.** Presets for 0.25, 0.33 (one-third, UPSC style), 0.5, and 1, plus a free-form box. **None** means nothing is ever deducted.
+- **Marks per correct answer: any value**, so max marks follow automatically.
+- **Optional "not attempted" bubble.** Turn it on and the last option (E on a five-option paper) becomes a declared skip, matching newer SSC papers. It locks the question, scores zero, and never attracts negative marking — so it is excluded from the answer key.
+
+Scoring stays on the server: `(correct × marks) − (wrong × negative)`, with skip-marked and blank questions counted as unattempted.
 - Content, notices, subjects, exams, and users all support create, edit, and delete
 
 ## GitHub

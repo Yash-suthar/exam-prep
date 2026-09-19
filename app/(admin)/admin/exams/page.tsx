@@ -3,6 +3,7 @@ import { ExamActions } from "@/components/admin/exam-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { markingSummary } from "@/lib/marking";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 
@@ -41,8 +42,7 @@ export default async function AdminExamsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                {exam._count.questions} questions · {exam._count.attempts} attempts · −
-                {exam.negativeMarking}
+                {markingSummary(exam)} · {exam._count.attempts} attempts
               </p>
               <ExamActions examId={exam.id} published={exam.isPublished} />
             </CardContent>

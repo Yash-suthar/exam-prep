@@ -41,6 +41,7 @@ export default async function EditExamPage({
           negativeMarking: exam.negativeMarking,
           rawPaperFileUrl: exam.rawPaperFileUrl,
           isPublished: exam.isPublished,
+          skipOptionEnabled: exam.skipOptionEnabled,
           answerKey: exam.questions.map((question) => question.correctOption),
           topics: exam.questions.map((question) => question.topic),
           accessModel: exam.accessModel,

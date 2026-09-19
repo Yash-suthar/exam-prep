@@ -175,10 +175,31 @@ async function login(page, email, password) {
   await page.locator('input[type="number"]').first().fill("5");
   await page.waitForTimeout(400);
 
+  // five options, E declares a skip, and no negative marking
+  await ui(page).getByRole("button", { name: /^5 · ABCDE$/ }).click();
+  await page.waitForTimeout(300);
+  await ui(page).getByRole("button", { name: "None", exact: true }).click();
+  await page.getByText(/means .not attempted./i).click();
+  await page.waitForTimeout(400);
+
+  const marking = await page.textContent("body");
+  step(
+    "marking summary reflects the custom scheme",
+    /options A–E/.test(marking ?? "") &&
+      /no negative marking/.test(marking ?? "") &&
+      /E = not attempted/.test(marking ?? ""),
+  );
+
   await ui(page).getByRole("button", { name: /^3\. Answer key$/ }).click();
-  await page.fill('input[placeholder="BCADB ACDBA …"]', "ABCDA");
+  await page.fill('input[placeholder="ABCD …"]', "ABCDA");
   await ui(page).getByRole("button", { name: /Fill 5 answers/i }).click();
   await page.waitForTimeout(500);
+  const keyOptions = await page.locator("select").nth(1).locator("option").allTextContents();
+  step(
+    "answer key drops the not-attempted bubble",
+    keyOptions.join("") === "ABCD",
+    keyOptions.join("") || "none",
+  );
   await page.locator('input[placeholder="Topic"]').first().fill("Percentages");
 
   await ui(page).getByRole("button", { name: /^5\. Publish$/ }).click();
@@ -186,9 +207,53 @@ async function login(page, email, password) {
 
   await ui(page).getByRole("button", { name: /Publish exam/i }).click();
   await page.waitForURL("**/admin/exams", { timeout: 20000 });
+  const list = await page.textContent("body");
+  step("exam publishes and appears in the list", list.includes(`E2E Mock ${stamp}`));
   step(
-    "exam publishes and appears in the list",
-    (await page.textContent("body")).includes(`E2E Mock ${stamp}`),
+    "list shows the custom marking scheme",
+    /options A–E/.test(list) && /E = not attempted/.test(list),
+  );
+
+  await context.close();
+}
+
+// ------------------------------------------------------------ skip bubble
+{
+  const { context, page } = await session();
+  await login(page, "student@meritpath.in", "MeritPath@Student1");
+
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  const skipExam = await prisma.exam.findFirst({ where: { skipOptionEnabled: true } });
+  await prisma.$disconnect();
+  step("a skip-option paper exists", Boolean(skipExam));
+
+  await page.goto(`${BASE}/exams/${skipExam.id}/instructions`, { waitUntil: "networkidle" });
+
+  if (page.url().includes("/instructions")) {
+    const text = await page.textContent("body");
+    step(
+      "instructions explain the not-attempted bubble",
+      /not attempted/i.test(text ?? "") && /no negative marking/i.test(text ?? ""),
+    );
+    await page.locator('input[type="checkbox"]').first().check();
+    await ui(page).getByRole("button", { name: /I am ready/i }).click();
+    await page.waitForURL("**/attempt", { timeout: 25000 });
+  }
+
+  await page.waitForTimeout(2500);
+  const bubbles = await page
+    .locator('aside button:not([disabled])')
+    .filter({ hasText: /^[A-E]$/ })
+    .allTextContents();
+  step(
+    "OMR renders five bubbles including E",
+    bubbles.slice(0, 5).join("") === "ABCDE",
+    bubbles.slice(0, 5).join("") || "none",
+  );
+  step(
+    "sheet explains the skip bubble",
+    /is the .not attempted. mark/i.test(await page.textContent("body")),
   );
 
   await context.close();

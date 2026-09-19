@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { useState } from "react";
-import { optionLabels } from "@/lib/utils";
+import { optionLabelsFor, skipOptionLabel } from "@/lib/marking";
 import { AnswerBubble } from "@/components/exam/answer-bubble";
 import { OmrSheet } from "@/components/omr/omr-sheet";
 import { useAnswerLock } from "@/components/exam/use-answer-lock";
@@ -20,6 +20,7 @@ export function MobileExamDock({
   attemptId,
   totalQuestions,
   optionsCount,
+  skipOptionEnabled = false,
   onLock,
   confirmBeforeLocking,
   onSubmit,
@@ -27,6 +28,7 @@ export function MobileExamDock({
   attemptId: string;
   totalQuestions: number;
   optionsCount: number;
+  skipOptionEnabled?: boolean;
   onLock: (questionNo: number, option: string) => Promise<{ ok: boolean; error?: string }>;
   confirmBeforeLocking: boolean;
   onSubmit: () => void;
@@ -37,7 +39,8 @@ export function MobileExamDock({
   const currentQuestion = useExamStore((state) => state.currentQuestion);
   const setCurrent = useExamStore((state) => state.setCurrent);
   const lock = useAnswerLock({ onLock, confirmBeforeLocking });
-  const options = optionLabels(optionsCount);
+  const options = optionLabelsFor(optionsCount);
+  const skip = skipOptionLabel(optionsCount, skipOptionEnabled);
   const selected = answers[currentQuestion];
   const answeredCount = Object.keys(answers).length;
 
@@ -85,6 +88,7 @@ export function MobileExamDock({
               attemptId={attemptId}
               totalQuestions={totalQuestions}
               optionsCount={optionsCount}
+              skipOptionEnabled={skipOptionEnabled}
               onLock={onLock}
               confirmBeforeLocking={confirmBeforeLocking}
               onSubmit={onSubmit}
@@ -110,6 +114,7 @@ export function MobileExamDock({
                     key={option}
                     option={option}
                     size="lg"
+                    variant={option === skip ? "skip" : "answer"}
                     filled={selected === option}
                     locked={Boolean(selected)}
                     onClick={() => lock.requestLock(currentQuestion, option)}
@@ -131,10 +136,13 @@ export function MobileExamDock({
 
       <Dialog open={Boolean(lock.pending)} onOpenChange={(open) => !open && lock.setPending(null)}>
         <DialogContent>
-          <DialogTitle>Lock this answer?</DialogTitle>
+          <DialogTitle>
+            {lock.pending?.option === skip ? "Mark as not attempted?" : "Lock this answer?"}
+          </DialogTitle>
           <DialogDescription>
-            Lock option {lock.pending?.option} for Question {lock.pending?.questionNo}? This cannot be
-            changed.
+            {lock.pending?.option === skip
+              ? `Question ${lock.pending?.questionNo} will be recorded as not attempted. It scores zero with no negative marking, and cannot be changed.`
+              : `Lock option ${lock.pending?.option} for Question ${lock.pending?.questionNo}? This cannot be changed.`}
           </DialogDescription>
           {lock.error ? <p className="mt-3 text-sm text-destructive">{lock.error}</p> : null}
           <div className="mt-5 flex justify-end gap-2">

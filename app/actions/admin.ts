@@ -4,6 +4,11 @@ import { AccessModel, EducationLevel, ItemType, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { autoGrantItemToMatchingUsers } from "@/lib/auto-grant";
+import {
+  answerableOptions,
+  clampOptionsCount,
+  skipOptionLabel,
+} from "@/lib/marking";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 
@@ -182,6 +187,7 @@ export async function publishExam(input: {
   marksPerQuestion: number;
   negativeMarking: number;
   optionsCount: number;
+  skipOptionEnabled?: boolean;
   price: number;
   isFree: boolean;
   rawPaperFileUrl: string;
@@ -194,14 +200,36 @@ export async function publishExam(input: {
     return { ok: false as const, error: "Answer key length must match total questions." };
   }
 
+  const optionsCount = clampOptionsCount(input.optionsCount);
+  const skipOptionEnabled = Boolean(input.skipOptionEnabled) && optionsCount >= 2;
+  const negativeMarking = Math.max(0, input.negativeMarking || 0);
+
+  if (input.marksPerQuestion <= 0) {
+    return { ok: false as const, error: "Marks per question must be above zero." };
+  }
+
+  const allowed = answerableOptions(optionsCount, skipOptionEnabled);
+  const invalid = input.answerKey.findIndex((option) => !allowed.includes(option));
+  if (invalid >= 0) {
+    const skip = skipOptionLabel(optionsCount, skipOptionEnabled);
+    return {
+      ok: false as const,
+      error:
+        input.answerKey[invalid] === skip
+          ? `Q${invalid + 1}: ${skip} means "not attempted", so it cannot be the correct answer.`
+          : `Q${invalid + 1}: "${input.answerKey[invalid]}" is not one of options ${allowed.join(", ")}.`,
+    };
+  }
+
   const data = {
     title: input.title,
     subjectId: input.subjectId || null,
     durationMinutes: input.durationMinutes,
     totalQuestions: input.totalQuestions,
     marksPerQuestion: input.marksPerQuestion,
-    negativeMarking: input.negativeMarking,
-    optionsCount: input.optionsCount,
+    negativeMarking,
+    optionsCount,
+    skipOptionEnabled,
     rawPaperFileUrl: input.rawPaperFileUrl,
     isPublished: input.isPublished,
     price: (input.accessModel ?? (input.isFree ? "FREE" : "PAID")) === "FREE" ? 0 : input.price,
