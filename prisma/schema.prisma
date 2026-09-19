@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum ItemType {
+  BOOK
+  MATERIAL
+  PAPER
+  PLAN
+  EXAM
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  AUTO_SUBMITTED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(USER)
+  suspended    Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  accessGrants AccessGrant[]
+  purchases    Purchase[]
+  examAttempts ExamAttempt[]
+  auditLogs    AuditLog[]    @relation("AuditActor")
+}
+
+model Subject {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  books  Book[]
+  papers Paper[]
+  exams  Exam[]
+}
+
+model Book {
+  id         String   @id @default(cuid())
+  title      String
+  subjectId  String
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+  fileUrl    String
+  price      Float
+  isFree     Boolean  @default(false)
+  coverImage String?
+  createdAt  DateTime @default(now())
+}
+
+model StudyMaterial {
+  id        String   @id @default(cuid())
+  title     String
+  fileUrl   String
+  price     Float
+  isFree    Boolean  @default(false)
+  tags      String[]
+  createdAt DateTime @default(now())
+}
+
+model Paper {
+  id        String  @id @default(cuid())
+  title     String
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  year      Int?
+  fileUrl   String
+  price     Float
+  isFree    Boolean @default(false)
+}
+
+model Notice {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  examDate    DateTime?
+  applyLink   String
+  isPinned    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
+
+model Plan {
+  id           String @id @default(cuid())
+  name         String
+  description  String
+  price        Float
+  durationDays Int
+  includesAll  Boolean @default(false)
+}
+
+model Purchase {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  itemType  ItemType
+  itemId    String
+  amount    Float
+  status    PaymentStatus @default(SUCCESS)
+  expiresAt DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([userId, itemType, itemId])
+}
+
+model AccessGrant {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  itemType  ItemType
+  itemId    String
+  grantedBy String
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, itemType, itemId])
+}
+
+model Exam {
+  id               String         @id @default(cuid())
+  title            String
+  subjectId        String?
+  subject          Subject?       @relation(fields: [subjectId], references: [id])
+  rawPaperFileUrl  String
+  durationMinutes  Int
+  totalQuestions   Int
+  marksPerQuestion Float
+  negativeMarking  Float          @default(0)
+  optionsCount     Int            @default(4)
+  price            Float
+  isFree           Boolean        @default(false)
+  isPublished      Boolean        @default(false)
+  questions        ExamQuestion[]
+  attempts         ExamAttempt[]
+  createdAt        DateTime       @default(now())
+}
+
+model ExamQuestion {
+  id            String @id @default(cuid())
+  examId        String
+  exam          Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+  questionNo    Int
+  correctOption String
+
+  @@unique([examId, questionNo])
+}
+
+model ExamAttempt {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id])
+  examId       String
+  exam         Exam         @relation(fields: [examId], references: [id])
+  startedAt    DateTime     @default(now())
+  submittedAt  DateTime?
+  score        Float?
+  correctCount Int?
+  wrongCount   Int?
+  unattempted  Int?
+  status       AttemptStatus @default(IN_PROGRESS)
+  answers      ExamAnswer[]
+
+  @@index([userId, examId, status])
+}
+
+model ExamAnswer {
+  id             String      @id @default(cuid())
+  attemptId      String
+  attempt        ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionNo     Int
+  selectedOption String?
+  answeredAt     DateTime    @default(now())
+
+  @@unique([attemptId, questionNo])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String
+  actor        User     @relation("AuditActor", fields: [actorId], references: [id])
+  action       String
+  itemType     ItemType?
+  itemId       String?
+  targetUserId String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+}

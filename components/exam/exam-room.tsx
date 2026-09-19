@@ -1,0 +1,174 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { lockAnswer, submitAttempt } from "@/app/actions/exam";
+import { OmrSheet } from "@/components/omr/omr-sheet";
+import { ExamTimer } from "@/components/exam/exam-timer";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const PdfViewer = dynamic(
+  () =>
+    import("@/components/pdf-viewer/pdf-viewer").then((mod) => mod.PdfViewer),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-[28rem] w-full rounded-2xl" />,
+  },
+);
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useExamStore } from "@/lib/exam-store";
+
+type ExamRoomProps = {
+  exam: {
+    id: string;
+    title: string;
+    totalQuestions: number;
+    optionsCount: number;
+    durationMinutes: number;
+    marksPerQuestion: number;
+    negativeMarking: number;
+  };
+  attempt: {
+    id: string;
+    startedAt: string;
+    answers: { questionNo: number; selectedOption: string | null }[];
+  };
+  paperUrl: string;
+};
+
+export function ExamRoom({ exam, attempt, paperUrl }: ExamRoomProps) {
+  const router = useRouter();
+  const hydrate = useExamStore((state) => state.hydrate);
+  const answers = useExamStore((state) => state.answers);
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const mapped: Record<number, string> = {};
+    for (const answer of attempt.answers) {
+      if (answer.selectedOption) mapped[answer.questionNo] = answer.selectedOption;
+    }
+    hydrate(mapped);
+  }, [attempt.answers, hydrate]);
+
+  const endsAt = useMemo(
+    () =>
+      new Date(
+        new Date(attempt.startedAt).getTime() + exam.durationMinutes * 60_000,
+      ).toISOString(),
+    [attempt.startedAt, exam.durationMinutes],
+  );
+
+  const answeredCount = Object.keys(answers).length;
+  const unansweredCount = exam.totalQuestions - answeredCount;
+
+  const finish = useCallback(
+    async (auto = false) => {
+      if (submitting) return;
+      setSubmitting(true);
+      const result = await submitAttempt(attempt.id, auto);
+      if (!result.ok) {
+        setSubmitting(false);
+        toast.error(result.error);
+        return;
+      }
+      toast.success(auto ? "Time up — paper submitted." : "Exam submitted.");
+      router.push(`/exams/${exam.id}/result`);
+    },
+    [attempt.id, exam.id, router, submitting],
+  );
+
+  async function onLock(questionNo: number, option: string) {
+    return lockAnswer({
+      attemptId: attempt.id,
+      questionNo,
+      selectedOption: option,
+    });
+  }
+
+  const remainingMs = new Date(endsAt).getTime() - Date.now();
+
+  return (
+    <div className="flex min-h-[calc(100vh-2rem)] flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+            Live exam
+          </p>
+          <h1 className="font-display text-2xl font-semibold">{exam.title}</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <ExamTimer endsAt={endsAt} onExpire={() => finish(true)} />
+          <Button type="button" onClick={() => setSubmitOpen(true)}>
+            Submit exam
+          </Button>
+        </div>
+      </div>
+
+      <div className="hidden min-h-0 flex-1 gap-4 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
+        <PdfViewer fileUrl={paperUrl} />
+        <aside className="overflow-auto rounded-2xl border border-border bg-card p-4">
+          <p className="mb-3 text-sm font-semibold">OMR answer sheet</p>
+          <OmrSheet
+            totalQuestions={exam.totalQuestions}
+            optionsCount={exam.optionsCount}
+            onLock={onLock}
+          />
+        </aside>
+      </div>
+
+      <div className="lg:hidden">
+        <Tabs defaultValue="paper">
+          <TabsList className="w-full">
+            <TabsTrigger value="paper" className="flex-1">
+              Paper
+            </TabsTrigger>
+            <TabsTrigger value="omr" className="flex-1">
+              OMR sheet
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="paper">
+            <PdfViewer fileUrl={paperUrl} />
+          </TabsContent>
+          <TabsContent value="omr">
+            <div className="rounded-2xl border border-border bg-card p-4">
+              <OmrSheet
+                totalQuestions={exam.totalQuestions}
+                optionsCount={exam.optionsCount}
+                onLock={onLock}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
+        <DialogContent>
+          <DialogTitle>Submit this paper?</DialogTitle>
+          <DialogDescription>
+            Answered {answeredCount} · Unanswered {unansweredCount} · Time left{" "}
+            {Math.max(0, Math.ceil(remainingMs / 60000))} min. Negative marking is{" "}
+            {exam.negativeMarking} per wrong answer.
+          </DialogDescription>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setSubmitOpen(false)}>
+              Keep attempting
+            </Button>
+            <Button type="button" onClick={() => finish(false)} disabled={submitting}>
+              {submitting ? "Submitting…" : "Submit now"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
