@@ -276,12 +276,44 @@ export async function saveCategoryTemplate(input: {
   return { ok: true as const };
 }
 
-export async function saveSubject(name: string) {
+export async function saveSubject(input: { id?: string; name: string }) {
   await requireAdmin();
-  const subject = await prisma.subject.create({ data: { name: name.trim() } });
+  const name = input.name.trim();
+  if (name.length < 2) {
+    return { ok: false as const, error: "Use at least 2 characters." };
+  }
+  const clash = await prisma.subject.findUnique({ where: { name } });
+  if (clash && clash.id !== input.id) {
+    return { ok: false as const, error: "That subject already exists." };
+  }
+  const subject = input.id
+    ? await prisma.subject.update({ where: { id: input.id }, data: { name } })
+    : await prisma.subject.create({ data: { name } });
   refreshCatalog();
   revalidatePath("/admin/exams");
-  return { ok: true as const, id: subject.id };
+  revalidatePath("/admin/exams/new");
+  revalidatePath("/admin/subjects");
+  return { ok: true as const, id: subject.id, name: subject.name };
+}
+
+export async function deleteSubject(id: string) {
+  await requireAdmin();
+  const [books, papers, exams] = await Promise.all([
+    prisma.book.count({ where: { subjectId: id } }),
+    prisma.paper.count({ where: { subjectId: id } }),
+    prisma.exam.count({ where: { subjectId: id } }),
+  ]);
+  if (books + papers + exams > 0) {
+    return {
+      ok: false as const,
+      error: "Move or delete books, papers, and exams in this subject first.",
+    };
+  }
+  await prisma.subject.delete({ where: { id } });
+  refreshCatalog();
+  revalidatePath("/admin/exams");
+  revalidatePath("/admin/subjects");
+  return { ok: true as const };
 }
 
 export async function saveBook(input: {

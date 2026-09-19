@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { publishExam } from "@/app/actions/admin";
+import { SubjectPicker } from "@/components/admin/subject-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,17 +110,7 @@ export function ExamBuilder({
             <Input value={title} onChange={(event) => setTitle(event.target.value)} />
           </Field>
           <Field label="Subject">
-            <select
-              className="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm"
-              value={subjectId}
-              onChange={(event) => setSubjectId(event.target.value)}
-            >
-              {subjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
+            <SubjectPicker subjects={subjects} value={subjectId} onChange={(id) => setSubjectId(id)} />
           </Field>
           <Field label="Duration (minutes)">
             <Input

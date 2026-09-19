@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, ClipboardList, LayoutDashboard, Megaphone, Users } from "lucide-react";
+import { BookOpen, ClipboardList, LayoutDashboard, Megaphone, Tags, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatInr } from "@/lib/utils";
@@ -11,10 +11,11 @@ export default async function AdminOverviewPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [users, exams, books, notices, monthRevenue] = await Promise.all([
+  const [users, exams, books, subjects, notices, monthRevenue] = await Promise.all([
     prisma.user.count(),
     prisma.exam.count(),
     prisma.book.count(),
+    prisma.subject.count(),
     prisma.notice.count(),
     prisma.purchase.aggregate({
       where: { status: "SUCCESS", createdAt: { gte: monthStart } },
@@ -38,6 +39,14 @@ export default async function AdminOverviewPage() {
       hint: "CRUD books, notes, and papers",
       icon: BookOpen,
       action: "Add or edit content",
+    },
+    {
+      href: "/admin/subjects",
+      title: "Subjects",
+      value: String(subjects),
+      hint: "Add Physics, TAT, or a new exam stream",
+      icon: Tags,
+      action: "Add a subject",
     },
     {
       href: "/admin/exams",

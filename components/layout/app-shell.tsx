@@ -32,6 +32,7 @@ const adminLinks = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/content", label: "Content" },
+  { href: "/admin/subjects", label: "Subjects" },
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/exams", label: "Exams" },
   { href: "/admin/notices", label: "Notices" },

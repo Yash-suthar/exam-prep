@@ -10,8 +10,8 @@ import {
   saveBook,
   saveMaterial,
   savePaper,
-  saveSubject,
 } from "@/app/actions/admin";
+import { SubjectPicker } from "@/components/admin/subject-picker";
 import { TargetingFields, type TargetingValue } from "@/components/admin/targeting-fields";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,31 +80,17 @@ export function ContentManager({
 }) {
   const [tab, setTab] = useState<"BOOK" | "MATERIAL" | "PAPER">("BOOK");
   const [editing, setEditing] = useState<string | "new" | null>("new");
-  const [subjectName, setSubjectName] = useState("");
+  const [subjectList, setSubjectList] = useState(subjects);
 
   return (
     <div className="space-y-5">
-      <form
-        className="flex flex-col gap-2 sm:flex-row"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          if (!subjectName.trim()) return;
-          const result = await saveSubject(subjectName);
-          if (result.ok) {
-            toast.success("Subject added.");
-            setSubjectName("");
-          }
-        }}
-      >
-        <Input
-          value={subjectName}
-          onChange={(event) => setSubjectName(event.target.value)}
-          placeholder="Add a subject, e.g. Physics"
-        />
-        <Button type="submit" variant="outline">
-          Add subject
-        </Button>
-      </form>
+      <p className="text-sm text-muted-foreground">
+        Need a subject that is not in the list? Add it under the subject field, or open{" "}
+        <a href="/admin/subjects" className="font-semibold text-primary">
+          Subjects
+        </a>
+        .
+      </p>
 
       <div className="flex flex-wrap gap-2">
         {(["BOOK", "MATERIAL", "PAPER"] as const).map((value) => (
@@ -131,7 +117,8 @@ export function ContentManager({
       {editing === "new" ? (
         <ItemForm
           kind={tab}
-          subjects={subjects}
+          subjects={subjectList}
+          onSubjectsChange={setSubjectList}
           onDone={() => toast.success("Saved.")}
         />
       ) : null}
@@ -152,7 +139,7 @@ export function ContentManager({
                   toast.success("Book removed.");
                 }}
               >
-                <ItemForm kind="BOOK" subjects={subjects} book={book} onDone={() => toast.success("Book updated.")} />
+                <ItemForm kind="BOOK" subjects={subjectList} onSubjectsChange={setSubjectList} book={book} onDone={() => toast.success("Book updated.")} />
               </Row>
             ))
           : null}
@@ -171,7 +158,7 @@ export function ContentManager({
                   toast.success("Material removed.");
                 }}
               >
-                <ItemForm kind="MATERIAL" subjects={subjects} material={material} onDone={() => toast.success("Material updated.")} />
+                <ItemForm kind="MATERIAL" subjects={subjectList} onSubjectsChange={setSubjectList} material={material} onDone={() => toast.success("Material updated.")} />
               </Row>
             ))
           : null}
@@ -190,7 +177,7 @@ export function ContentManager({
                   toast.success("Paper removed.");
                 }}
               >
-                <ItemForm kind="PAPER" subjects={subjects} paper={paper} onDone={() => toast.success("Paper updated.")} />
+                <ItemForm kind="PAPER" subjects={subjectList} onSubjectsChange={setSubjectList} paper={paper} onDone={() => toast.success("Paper updated.")} />
               </Row>
             ))
           : null}
@@ -243,6 +230,7 @@ function Row({
 function ItemForm({
   kind,
   subjects,
+  onSubjectsChange,
   book,
   material,
   paper,
@@ -250,6 +238,7 @@ function ItemForm({
 }: {
   kind: "BOOK" | "MATERIAL" | "PAPER";
   subjects: { id: string; name: string }[];
+  onSubjectsChange?: (subjects: { id: string; name: string }[]) => void;
   book?: BookRow;
   material?: MaterialRow;
   paper?: PaperRow;
@@ -312,17 +301,14 @@ function ItemForm({
       </Field>
       {kind !== "MATERIAL" ? (
         <Field label="Subject">
-          <select
-            className="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm"
+          <SubjectPicker
+            subjects={subjects}
             value={subjectId}
-            onChange={(event) => setSubjectId(event.target.value)}
-          >
-            {subjects.map((subject) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
+            onChange={(id, next) => {
+              setSubjectId(id);
+              if (next) onSubjectsChange?.(next);
+            }}
+          />
         </Field>
       ) : (
         <Field label="Tags">
